@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pembasmi Hama</title>
+<meta name="description" content="Game ketuk hama dan penyakit jagung, lalu pilih bahan aktif yang tepat sebelum waktunya habis. Untuk belajar.">
+<meta name="theme-color" content="#2a7a3b">
+<meta property="og:title" content="Pembasmi Hama">
+<meta property="og:description" content="Game ketuk hama dan penyakit jagung, lalu pilih bahan aktif yang tepat sebelum waktunya habis. Untuk belajar.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232a7a3b'/%3E%3Cellipse cx='16' cy='18' rx='7' ry='9' fill='%237c6c37'/%3E%3Ccircle cx='16' cy='8' r='5' fill='%235b4a28'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@500;600&family=Public+Sans:wght@400;500;600&display=swap">
+<style>
+html{color-scheme:light}
+:root{padding-top:env(safe-area-inset-top,0px)}
+body{margin:0}
+[hidden]{display:none!important}
+/* Layout: satu kolom ala HP. Kiri-kanan: HUD, lapangan 3x2 petak jagung, lembar pilihan bahan aktif dari bawah. */
+:root{
+  --bg:#eef2ec; --surface:#ffffff; --surface2:#e5ece2; --ink:#14231a; --muted:#52645a; --line:#cdd8ca;
+  --leaf:#2a7a3b; --leaf-ink:#ffffff; --corn:#e0a800;
+  --good:#2f9e4f; --warn:#d9822b; --bad:#c23b2a; --track:#d9e3d6;
+  --sky1:#bfe3f5; --sky2:#e3f2e4; --soil:#6b4a2f; --stem:#3d7a2e;
+  --font-display:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --font-body:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font-mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1511; --surface:#16211a; --surface2:#1d2b22; --ink:#e4efe6; --muted:#9bb0a1; --line:#2b3b30;
+    --leaf:#4fbf68; --leaf-ink:#06210f; --corn:#f0bd2e;
+    --good:#58c277; --warn:#e8993f; --bad:#ec6a58; --track:#25352b;
+    --sky1:#33506a; --sky2:#27402f; --soil:#4a3322; --stem:#4a9a3a; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1511; --surface:#16211a; --surface2:#1d2b22; --ink:#e4efe6; --muted:#9bb0a1; --line:#2b3b30;
+  --leaf:#4fbf68; --leaf-ink:#06210f; --corn:#f0bd2e;
+  --good:#58c277; --warn:#e8993f; --bad:#ec6a58; --track:#25352b;
+  --sky1:#33506a; --sky2:#27402f; --soil:#4a3322; --stem:#4a9a3a; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.5}
+.wrap{max-width:560px;margin:0 auto;padding-block:16px 24px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--font-display);margin:0;text-wrap:balance;line-height:1.15}
+h1{font-size:clamp(26px,7vw,34px);font-weight:800;letter-spacing:-.01em}
+h2{font-size:19px;font-weight:700}
+h3{font-size:15.5px;font-weight:700}
+.muted{color:var(--muted)}
+.top{margin-bottom:12px}
+.top p{margin:2px 0 0;color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0}
+.stack{display:flex;flex-direction:column;gap:12px}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid #2b79b8;outline-offset:2px}
+.btn{border:1px solid var(--line);background:var(--surface2);border-radius:8px;padding:9px 14px;font-weight:600;min-height:44px}
+.btn:hover{border-color:var(--leaf)}
+.btn.primary{background:var(--leaf);color:var(--leaf-ink);border-color:var(--leaf)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.btns .btn{flex:1 1 140px}
+.how{margin:10px 0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
+.chk{display:flex;gap:8px;align-items:center;margin:6px 0 12px}
+.chk input{width:20px;height:20px;accent-color:var(--leaf)}
+.foot{color:var(--muted);font-size:12.5px;margin:10px 0 0}
+.hl{background:var(--surface2);border-radius:8px;padding:8px 10px;font-size:13.5px}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+/* HUD */
+.hud{display:grid;grid-template-columns:repeat(3,1fr);gap:8px 10px}
+.m small{display:block;color:var(--muted);font-size:12px}
+.m b{font-family:var(--font-mono);font-size:22px;font-weight:600;font-variant-numeric:tabular-nums}
+.hp{grid-column:1/-1}
+.hp small{color:var(--muted);font-size:12px}
+.trk{height:10px;border-radius:5px;background:var(--track);overflow:hidden;margin-top:3px}
+.trk span{display:block;height:100%;border-radius:5px;background:var(--good);transition:width .2s,background .2s}
+/* lapangan */
+.field{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px;--pc:#4a9a45}
+.cell{position:relative;aspect-ratio:5/7;border-radius:10px;overflow:hidden;border:1px solid var(--line);background:linear-gradient(var(--sky1),var(--sky2))}
+.cell svg.plant{position:absolute;inset:0;width:100%;height:100%}
+.cell.hit{animation:hit .4s}
+@keyframes hit{0%,100%{box-shadow:none}30%{box-shadow:inset 0 0 0 4px var(--bad)}}
+.slot{position:absolute;left:0;right:0;display:flex;justify-content:center;pointer-events:none}
+.slot.high{top:8%} .slot.mid{top:26%} .slot.low{bottom:5%}
+.pest{pointer-events:auto;border:0;background:transparent;padding:0;display:flex;flex-direction:column;align-items:center;animation:pop .22s ease-out}
+@keyframes pop{from{transform:scale(.5);opacity:0}to{transform:scale(1);opacity:1}}
+.pest .ico{position:relative;width:62px;height:62px;display:grid;place-items:center}
+.pest .ico>svg.i{position:relative;width:40px;height:40px}
+.ring{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+.ring .bg{fill:rgba(255,255,255,.92);stroke:rgba(0,0,0,.12);stroke-width:3}
+.ring .pg{fill:none;stroke:#2f9e4f;stroke-width:3.5;stroke-linecap:round;stroke-dasharray:100}
+.pest.hot .ring .pg{stroke:#c23b2a}
+.pest:not(.hot) .ico{animation:wig 1.6s ease-in-out infinite}
+@keyframes wig{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+@media (prefers-reduced-motion:reduce){.pest,.pest .ico,.cell.hit{animation:none}}
+.lab{font-size:11px;font-weight:600;background:rgba(255,255,255,.94);color:#14231a;border-radius:999px;padding:1px 7px;margin-top:2px;max-width:104px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* lembar jawaban */
+.overlay{position:fixed;inset:0;z-index:20;display:flex;align-items:flex-end;justify-content:center;background:rgba(8,15,10,.55)}
+.sheet{width:100%;max-width:560px;max-height:92%;overflow:auto;background:var(--surface);border-radius:16px 16px 0 0;padding-top:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.shhead{display:flex;gap:12px;align-items:flex-start}
+.shhead .ic{flex:none;width:56px;height:56px;border-radius:12px;background:var(--surface2);display:grid;place-items:center}
+.shhead .ic svg{width:42px;height:42px}
+.shhead>div{flex:1;min-width:0}
+.shhead p{margin:2px 0 0;font-size:13.5px;color:var(--muted)}
+.x{flex:none;width:44px;height:44px;border:0;background:transparent;font-size:26px;line-height:1;border-radius:8px}
+.q{margin:12px 0 8px;font-weight:600}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{display:flex;flex-direction:column;align-items:flex-start;text-align:left;border:1.5px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 12px;min-height:48px;width:100%}
+.opt b{font-size:15px}
+.opt small{color:var(--muted);font-size:12.5px;display:none}
+.opts.done .opt small{display:block}
+.opts.done .opt{opacity:.6;cursor:default}
+.opt.right{border-color:var(--good);background:var(--surface2);opacity:1!important;box-shadow:inset 0 0 0 1px var(--good)}
+.opt.wrong{border-color:var(--bad);opacity:1!important;box-shadow:inset 0 0 0 1px var(--bad)}
+.fb{margin:12px 0;padding:10px 12px;border-radius:10px;background:var(--surface2);font-size:14px}
+.fb b.ok{color:var(--good)} .fb b.no{color:var(--bad)}
+/* hasil dan kamus */
+.big{font-family:var(--font-display);font-weight:800;font-size:clamp(40px,12vw,58px);line-height:1}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.rv{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.rv div{font-size:14px;border-top:1px solid var(--line);padding-top:8px}
+.dcard{display:flex;gap:12px}
+.dcard .ic{flex:none;width:52px;height:52px;border-radius:10px;background:var(--surface2);display:grid;place-items:center}
+.dcard .ic svg{width:38px;height:38px}
+.dcard>div{min-width:0}
+.dcard p{margin:3px 0 0;font-size:13.5px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chip{background:var(--surface2);border:1px solid var(--line);border-radius:999px;padding:2px 9px;font-size:12.5px}
+.chip small{color:var(--muted)}
+.warnp{color:var(--bad);font-size:13px}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <h1>Pembasmi Hama</h1>
+    <p>Kenali hama dan penyakit jagung, lalu pilih bahan aktif yang tepat</p>
+  </header>
+
+  <section id="home" class="card">
+    <h2>Selamatkan petak jagungmu</h2>
+    <ol class="how">
+      <li>Ketuk hama atau penyakit yang muncul di tanaman.</li>
+      <li>Pilih satu dari empat bahan aktif.</li>
+      <li>Jawaban tepat menambah skor dan kombo. Salah pilih atau terlambat melukai tanaman.</li>
+    </ol>
+    <label class="chk"><input type="checkbox" id="expert"> Mode ahli: nama hama disembunyikan</label>
+    <div class="btns">
+      <button class="btn primary" id="start">Mulai (60 detik)</button>
+      <button class="btn" id="openDict">Kamus hama</button>
+    </div>
+    <p class="foot" id="bestLine"></p>
+    <p class="foot">Untuk belajar. Pilihan bahan aktif di sini disederhanakan dan bukan rekomendasi penggunaan. Selalu ikuti label produk, izin edar, dan anjuran setempat.</p>
+  </section>
+
+  <section id="dict" class="stack" hidden></section>
+
+  <main id="game" hidden>
+    <div class="card">
+      <div class="hud">
+        <div class="m"><small>Waktu</small><b id="hTime">60</b></div>
+        <div class="m"><small>Skor</small><b id="hScore">0</b></div>
+        <div class="m"><small>Kombo</small><b id="hCombo">0</b></div>
+        <div class="hp"><small>Kesehatan tanaman</small><div class="trk"><span id="hHp" style="width:100%"></span></div></div>
+      </div>
+    </div>
+    <div class="field" id="field"></div>
+    <p class="foot" style="text-align:center">Ketuk hama di tanaman sebelum lingkarannya habis.</p>
+  </main>
+
+  <section id="result" class="stack" hidden></section>
+</div>
+
+<div id="sheet" class="overlay" hidden role="dialog" aria-modal="true" aria-labelledby="shTitle">
+  <div class="sheet">
+    <div class="shhead">
+      <span class="ic" id="shIco"></span>
+      <div><h2 id="shTitle"></h2><p id="shSym"></p></div>
+      <button class="x" id="shClose" aria-label="Tutup">&times;</button>
+    </div>
+    <p class="q">Bahan aktif mana yang tepat?</p>
+    <div class="opts" id="shOpts"></div>
+    <div class="fb" id="shFb" hidden></div>
+    <button class="btn primary" id="shNext" style="width:100%" hidden>Lanjut</button>
+  </div>
+</div>
+
+<script>
+/*DATA_START*/
+const ACT = {
+  emamektin:{n:'Emamektin benzoat',g:'Insektisida',moa:'Aktivator kanal klorida (IRAC 6)'},
+  klorantraniliprol:{n:'Klorantraniliprol',g:'Insektisida',moa:'Diamida, reseptor ryanodin (IRAC 28)'},
+  spinetoram:{n:'Spinetoram',g:'Insektisida',moa:'Spinosin, reseptor nikotinik (IRAC 5)'},
+  imidakloprid:{n:'Imidakloprid',g:'Insektisida',moa:'Neonikotinoid (IRAC 4A)'},
+  tiametoksam:{n:'Tiametoksam',g:'Insektisida',moa:'Neonikotinoid (IRAC 4A)'},
+  metalaksil:{n:'Metalaksil',g:'Fungisida',moa:'Fenilamida, khusus cendawan semu (FRAC 4)'},
+  azoksistrobin:{n:'Azoksistrobin',g:'Fungisida',moa:'Strobilurin, penghambat QoI (FRAC 11)'},
+  propikonazol:{n:'Propikonazol',g:'Fungisida',moa:'Triazol, penghambat DMI (FRAC 3)'},
+  mankozeb:{n:'Mankozeb',g:'Fungisida',moa:'Kontak multi-situs (FRAC M03)'},
+  nikosulfuron:{n:'Nikosulfuron',g:'Herbisida',moa:'Penghambat ALS (kelompok 2)'},
+  atrazin:{n:'Atrazin',g:'Herbisida',moa:'Penghambat fotosistem II (kelompok 5)'},
+  mesotrion:{n:'Mesotrion',g:'Herbisida',moa:'Penghambat HPPD (kelompok 27)'},
+  glifosat:{n:'Glifosat',g:'Herbisida non-selektif',moa:'Penghambat EPSPS (kelompok 9)'},
+  brodifakum:{n:'Brodifakum',g:'Rodentisida',moa:'Antikoagulan generasi kedua'},
+  bromadiolon:{n:'Bromadiolon',g:'Rodentisida',moa:'Antikoagulan generasi kedua'}
+};
+const INSEKT_BAD = ['metalaksil','propikonazol','mankozeb','atrazin','glifosat','brodifakum','bromadiolon','nikosulfuron','mesotrion','azoksistrobin'];
+const PESTS = {
+  faw:{n:'Ulat grayak',lat:'Spodoptera frugiperda',pos:'mid',
+    sym:'Larva menggerek pucuk dan daun muda. Kotoran seperti serbuk gergaji menumpuk di pelepah.',
+    ok:['emamektin','klorantraniliprol','spinetoram'],bad:INSEKT_BAD,trap:{},
+    tip:'Arahkan semprotan ke pucuk tempat larva bersembunyi, dan rotasi kelompok cara kerja untuk menunda resistensi.'},
+  borer:{n:'Penggerek batang',lat:'Ostrinia furnacalis',pos:'mid',
+    sym:'Lubang gerekan di batang, serbuk gerek di ketiak daun, malai mudah patah.',
+    ok:['klorantraniliprol','emamektin'],bad:INSEKT_BAD,trap:{},
+    tip:'Waktu aplikasi menentukan: larva muda yang belum masuk batang jauh lebih mudah dikendalikan.'},
+  aphid:{n:'Kutu daun',lat:'Rhopalosiphum maidis',pos:'high',
+    sym:'Koloni kecil hijau keabuan di malai dan daun, ada embun madu dan jelaga.',
+    ok:['imidakloprid','tiametoksam'],bad:INSEKT_BAD,trap:{},
+    tip:'Cek musuh alami seperti kumbang koksi sebelum menyemprot.'},
+  fly:{n:'Lalat bibit',lat:'Atherigona spp.',pos:'low',
+    sym:'Titik tumbuh bibit muda mati. Daun tengah layu dan mudah dicabut.',
+    ok:['tiametoksam','imidakloprid'],bad:INSEKT_BAD,trap:{},
+    tip:'Paling efektif lewat perlakuan benih, karena serangan terjadi saat tanaman masih sangat muda.'},
+  downy:{n:'Bulai',lat:'Peronosclerospora maydis',pos:'mid',
+    sym:'Garis klorotik sejajar tulang daun, tanaman kerdil, spora putih di bawah daun pada pagi hari.',
+    ok:['metalaksil'],bad:['propikonazol','emamektin','klorantraniliprol','spinetoram','imidakloprid','tiametoksam','atrazin','glifosat','brodifakum','bromadiolon','nikosulfuron','mesotrion'],
+    trap:{propikonazol:'Bulai disebabkan cendawan semu (oomycetes). Fungisida triazol tidak efektif untuk kelompok ini.'},
+    tip:'Perlakuan benih metalaksil, tanam serempak, dan cabut tanaman bergejala lebih awal.'},
+  blight:{n:'Hawar daun',lat:'Exserohilum turcicum',pos:'high',
+    sym:'Bercak lonjong abu-cokelat besar berbentuk cerutu di daun.',
+    ok:['azoksistrobin','propikonazol','mankozeb'],bad:['metalaksil','emamektin','klorantraniliprol','spinetoram','imidakloprid','tiametoksam','atrazin','glifosat','brodifakum','bromadiolon','nikosulfuron','mesotrion'],
+    trap:{metalaksil:'Metalaksil khusus cendawan semu. Hawar daun disebabkan cendawan sejati, jadi pilih triazol, strobilurin, atau kontak.'},
+    tip:'Aplikasi preventif saat cuaca lembap dan varietas toleran lebih menolong daripada menyemprot setelah bercak meluas.'},
+  rust:{n:'Karat daun',lat:'Puccinia spp.',pos:'high',
+    sym:'Pustul kecil oranye kecokelatan seperti serbuk di kedua sisi daun.',
+    ok:['propikonazol','azoksistrobin'],bad:['metalaksil','emamektin','klorantraniliprol','spinetoram','imidakloprid','tiametoksam','atrazin','glifosat','brodifakum','bromadiolon','nikosulfuron','mesotrion'],
+    trap:{metalaksil:'Metalaksil khusus cendawan semu. Karat disebabkan cendawan sejati, jadi pilih triazol atau strobilurin.'},
+    tip:'Gabungkan fungisida dengan varietas yang lebih tahan karat.'},
+  weed:{n:'Gulma',lat:'rumput dan daun lebar',pos:'low',
+    sym:'Rumput dan gulma daun lebar bersaing di sela barisan, terutama saat jagung masih muda.',
+    ok:['nikosulfuron','atrazin','mesotrion'],bad:['glifosat','emamektin','klorantraniliprol','spinetoram','imidakloprid','tiametoksam','metalaksil','azoksistrobin','propikonazol','mankozeb','brodifakum','bromadiolon'],
+    trap:{glifosat:'Glifosat non-selektif, jagung ikut mati. Pakai herbisida yang selektif untuk jagung.'},
+    tip:'Cek sensitivitas varietas terhadap herbisida di label. Penyiangan mekanis tetap pilihan yang aman.'},
+  rat:{n:'Tikus sawah',lat:'Rattus argentiventer',pos:'low',
+    sym:'Lubang di tanah, tongkol digigit, jejak di sela barisan.',
+    ok:['brodifakum','bromadiolon'],bad:['emamektin','klorantraniliprol','spinetoram','imidakloprid','tiametoksam','metalaksil','azoksistrobin','propikonazol','mankozeb','atrazin','glifosat','nikosulfuron','mesotrion'],trap:{},
+    tip:'Padukan dengan gropyokan dan sanitasi gulma agar populasi tidak kembali naik.'}
+};
+/*DATA_END*/
+
+const ICON = {
+  faw:'<svg class="i" viewBox="0 0 64 64"><circle cx="13" cy="40" r="8" fill="#8b7a43"/><circle cx="25" cy="38" r="9" fill="#7c6c37"/><circle cx="37" cy="38" r="9" fill="#8b7a43"/><circle cx="48" cy="40" r="8" fill="#7c6c37"/><circle cx="53" cy="31" r="9" fill="#5b4a28"/><path d="M49 26l4 5 4-5M53 31v5" stroke="#efe2a8" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="50" cy="29" r="1.4" fill="#111"/><path d="M8 50h46" stroke="#4a3d20" stroke-width="2" stroke-dasharray="2 5" stroke-linecap="round"/><path d="M14 33h30" stroke="#d9c987" stroke-width="2" opacity=".6"/></svg>',
+  borer:'<svg class="i" viewBox="0 0 64 64"><rect x="20" y="4" width="24" height="56" rx="6" fill="#8fbf5a"/><ellipse cx="32" cy="34" rx="9" ry="11" fill="#3b2a18"/><circle cx="32" cy="42" r="6" fill="#efe0b4"/><circle cx="32" cy="33" r="6.5" fill="#e8d6a3"/><circle cx="32" cy="24" r="6" fill="#efe0b4"/><circle cx="32" cy="17" r="4.8" fill="#6b4a25"/><circle cx="30" cy="16" r="1" fill="#111"/><circle cx="34" cy="16" r="1" fill="#111"/><circle cx="30" cy="33" r="1" fill="#6b5a3a"/><circle cx="34" cy="33" r="1" fill="#6b5a3a"/></svg>',
+  aphid:'<svg class="i" viewBox="0 0 64 64"><path d="M10 54Q32 8 56 18" stroke="#6aa84f" stroke-width="5" fill="none" stroke-linecap="round"/><g fill="#9ab86a" stroke="#5c7c3a" stroke-width="1"><ellipse cx="20" cy="38" rx="6" ry="4.5"/><ellipse cx="30" cy="30" rx="6" ry="4.5"/><ellipse cx="40" cy="26" rx="6" ry="4.5"/><ellipse cx="26" cy="42" rx="5" ry="4"/><ellipse cx="38" cy="36" rx="5.5" ry="4"/><ellipse cx="47" cy="20" rx="5" ry="4"/></g><path d="M16 42l-3 3M30 34l-2 4M42 30l3 3M24 46l-2 3" stroke="#3d4f27" stroke-width="1"/></svg>',
+  fly:'<svg class="i" viewBox="0 0 64 64"><ellipse cx="22" cy="24" rx="16" ry="9" fill="#cfe6f5" stroke="#7fa6c0" transform="rotate(-25 22 24)"/><ellipse cx="42" cy="24" rx="16" ry="9" fill="#cfe6f5" stroke="#7fa6c0" transform="rotate(25 42 24)"/><ellipse cx="32" cy="40" rx="9" ry="14" fill="#5d5f63"/><circle cx="32" cy="26" r="7" fill="#6f7277"/><circle cx="28.5" cy="24.5" r="2.6" fill="#b3342b"/><circle cx="35.5" cy="24.5" r="2.6" fill="#b3342b"/><path d="M24 40l-8 4M40 40l8 4M25 46l-8 8M39 46l8 8" stroke="#333" stroke-width="1.6" stroke-linecap="round"/></svg>',
+  downy:'<svg class="i" viewBox="0 0 64 64"><path d="M6 50Q8 12 56 10Q58 50 6 50Z" fill="#6fae4a"/><path d="M6 50Q30 30 56 10" stroke="#3f7a2c" stroke-width="2" fill="none"/><g stroke="#f1f0a8" stroke-width="3" stroke-linecap="round" fill="none"><path d="M12 44Q28 30 44 18"/><path d="M18 48Q36 34 52 20"/><path d="M10 38Q24 26 38 14"/></g></svg>',
+  blight:'<svg class="i" viewBox="0 0 64 64"><path d="M6 50Q8 12 56 10Q58 50 6 50Z" fill="#7bb04f"/><path d="M6 50Q30 30 56 10" stroke="#3f7a2c" stroke-width="2" fill="none"/><g fill="#a07a4d" stroke="#6e4b27" stroke-width="1.5"><ellipse cx="26" cy="32" rx="14" ry="4.5" transform="rotate(-35 26 32)"/><ellipse cx="42" cy="22" rx="9" ry="3.5" transform="rotate(-35 42 22)"/><ellipse cx="18" cy="44" rx="7" ry="3" transform="rotate(-30 18 44)"/></g></svg>',
+  rust:'<svg class="i" viewBox="0 0 64 64"><path d="M6 50Q8 12 56 10Q58 50 6 50Z" fill="#78ad4d"/><path d="M6 50Q30 30 56 10" stroke="#3f7a2c" stroke-width="2" fill="none"/><g fill="#c2661f" stroke="#8a4410" stroke-width=".8"><circle cx="18" cy="42" r="2.4"/><circle cx="24" cy="36" r="2.6"/><circle cx="30" cy="30" r="2.4"/><circle cx="36" cy="26" r="2.6"/><circle cx="42" cy="20" r="2.2"/><circle cx="28" cy="40" r="2"/><circle cx="36" cy="34" r="2.4"/><circle cx="44" cy="28" r="2"/><circle cx="22" cy="30" r="2"/><circle cx="48" cy="16" r="2"/></g></svg>',
+  weed:'<svg class="i" viewBox="0 0 64 64"><g stroke="#4f9a2f" stroke-width="4" stroke-linecap="round" fill="none"><path d="M32 58Q30 36 14 20"/><path d="M32 58Q32 34 32 10"/><path d="M32 58Q34 36 50 18"/><path d="M32 58Q24 42 8 40"/><path d="M32 58Q40 42 58 38"/></g><path d="M22 58h20" stroke="#5a3d22" stroke-width="5" stroke-linecap="round"/></svg>',
+  rat:'<svg class="i" viewBox="0 0 64 64"><path d="M10 44Q-2 40 6 30Q10 26 16 34" stroke="#d3a6a0" stroke-width="3" fill="none" stroke-linecap="round"/><ellipse cx="30" cy="42" rx="20" ry="12" fill="#8a8d92"/><circle cx="50" cy="38" r="9" fill="#9a9da2"/><circle cx="52" cy="28" r="4.5" fill="#d9a3a0" stroke="#8a8d92" stroke-width="1.5"/><circle cx="53" cy="37" r="1.6" fill="#111"/><circle cx="59" cy="41" r="2" fill="#e08a8a"/><path d="M56 42l7-1M56 44l7 2" stroke="#444" stroke-width="1"/><path d="M18 52v6M38 52v6" stroke="#6d7075" stroke-width="3" stroke-linecap="round"/></svg>'
+};
+const PLANT = '<svg class="plant" viewBox="0 0 100 140" aria-hidden="true"><rect x="0" y="122" width="100" height="18" fill="var(--soil)"/><path d="M50 126V30" stroke="var(--stem)" stroke-width="5" stroke-linecap="round"/><g fill="var(--pc)"><path d="M50 108Q18 100 6 114Q30 108 50 114Z"/><path d="M50 96Q82 86 96 100Q72 98 50 104Z"/><path d="M50 80Q20 68 8 78Q30 78 50 86Z"/><path d="M50 66Q78 54 92 64Q70 66 50 72Z"/><path d="M50 52Q30 38 18 44Q36 50 50 58Z"/><path d="M50 42Q68 28 80 32Q66 40 50 48Z"/></g><ellipse cx="58" cy="84" rx="5" ry="11" fill="#c9b458" transform="rotate(-18 58 84)"/></svg>';
+
+const $ = s => document.querySelector(s);
+const ROUND = 60, NSLOT = 6;
+const shuffle = a => { a = a.slice(); for (let i = a.length-1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]] = [a[j],a[i]]; } return a; };
+const pick = a => a[Math.floor(Math.random()*a.length)];
+let S = null, rafId = 0;
+
+function show(id){ ['home','dict','game','result'].forEach(k => { $('#'+k).hidden = k !== id; }); window.scrollTo(0,0); }
+function bestScore(){ try { return +localStorage.getItem('pembasmi-hama-best') || 0; } catch(e) { return 0; } }
+function setBest(v){ try { localStorage.setItem('pembasmi-hama-best', String(v)); } catch(e) {} }
+function renderBest(){ const b = bestScore(); $('#bestLine').textContent = b ? 'Skor terbaik di perangkat ini: ' + b : ''; }
+
+function renderDict(){
+  const names = k => PESTS[k].ok.map(id => '<span class="chip">'+ACT[id].n+' <small>'+ACT[id].moa.replace(/.*\((.*)\)/,'$1')+'</small></span>').join('');
+  $('#dict').innerHTML =
+    '<div class="card"><h2>Kamus hama</h2><p class="muted" style="margin:4px 0 0">Gejala dan bahan aktif yang dipakai di game ini. Disederhanakan untuk belajar.</p></div>' +
+    Object.keys(PESTS).map(k => { const P = PESTS[k], tr = Object.values(P.trap)[0];
+      return '<div class="card dcard"><span class="ic">'+ICON[k]+'</span><div><h3>'+P.n+'</h3><span class="muted" style="font-size:12.5px"><i>'+P.lat+'</i></span><p>'+P.sym+'</p><div class="chips">'+names(k)+'</div><p class="muted">'+P.tip+'</p>'+(tr?'<p class="warnp">Jebakan: '+tr+'</p>':'')+'</div></div>'; }).join('') +
+    '<div class="card"><p class="foot" style="margin:0">Pestisida harus terdaftar dan dipakai sesuai label. Beberapa bahan aktif dibatasi atau tidak dianjurkan di wilayah tertentu. Rotasi kelompok cara kerja (IRAC, FRAC, HRAC) membantu menunda resistensi.</p></div>' +
+    '<div class="btns"><button class="btn primary" id="dictBack">Kembali</button></div>';
+}
+
+function newGame(){
+  S = { t: ROUND, score: 0, combo: 0, bestCombo: 0, hp: 100, right: 0, wrong: 0, missed: 0, elapsed: 0, spawn: 0.5, pests: [], uid: 0, paused: false, over: false, answered: false, cur: null, last: performance.now(), lastType: '', review: {}, expert: $('#expert').checked };
+  const f = $('#field'); f.innerHTML = '';
+  for (let i = 0; i < NSLOT; i++) { const c = document.createElement('div'); c.className = 'cell'; c.id = 'cell'+i; c.innerHTML = PLANT; f.appendChild(c); }
+  show('game'); hud();
+  cancelAnimationFrame(rafId); rafId = requestAnimationFrame(loop);
+}
+
+function hud(){
+  $('#hTime').textContent = Math.max(0, Math.ceil(S.t));
+  $('#hScore').textContent = S.score;
+  $('#hCombo').textContent = 'x' + S.combo;
+  const hp = $('#hHp'); hp.style.width = Math.max(0, S.hp) + '%';
+  hp.style.background = S.hp > 55 ? 'var(--good)' : S.hp > 25 ? 'var(--warn)' : 'var(--bad)';
+  $('#field').style.setProperty('--pc', 'hsl(' + Math.round(55 + 55*Math.max(0,S.hp)/100) + ' 45% 36%)');
+}
+
+function loop(now){
+  if (!S || S.over) return;
+  const dt = Math.min(0.1, (now - S.last)/1000); S.last = now;
+  if (!S.paused) tick(dt);
+  rafId = requestAnimationFrame(loop);
+}
+
+function tick(dt){
+  S.t -= dt; S.elapsed += dt; S.spawn -= dt;
+  const maxC = Math.min(4, 2 + Math.floor(S.elapsed/20));
+  if (S.spawn <= 0 && S.pests.length < maxC) { spawnPest(); S.spawn = Math.max(0.9, 2.0 - S.elapsed*0.018); }
+  const ttl = Math.max(4.5, 9 - S.elapsed*0.07);
+  S.pests.slice().forEach(p => {
+    p.age += dt;
+    const frac = p.age / p.ttl;
+    p.pg.style.strokeDashoffset = (100*Math.min(1, frac)).toFixed(1);
+    p.btn.classList.toggle('hot', frac > 0.7);
+    if (p.age >= p.ttl) missPest(p);
+  });
+  hud();
+  if (S.t <= 0 || S.hp <= 0) endGame();
+}
+
+function spawnPest(){
+  const used = S.pests.map(p => p.slot), free = [];
+  for (let i = 0; i < NSLOT; i++) if (!used.includes(i)) free.push(i);
+  if (!free.length) return;
+  const slot = pick(free);
+  let type = pick(Object.keys(PESTS));
+  if (type === S.lastType) type = pick(Object.keys(PESTS));
+  S.lastType = type;
+  const P = PESTS[type], id = ++S.uid;
+  const ttl = Math.max(4.5, 9 - S.elapsed*0.07);
+  const wrap = document.createElement('div'); wrap.className = 'slot ' + P.pos;
+  wrap.innerHTML = '<button class="pest" aria-label="'+(S.expert?'Hama':P.n)+'"><span class="ico"><svg class="ring" viewBox="0 0 44 44"><circle class="bg" cx="22" cy="22" r="19.5"/><circle class="pg" cx="22" cy="22" r="19.5" pathLength="100" style="stroke-dashoffset:0"/></svg>'+ICON[type]+'</span><span class="lab">'+(S.expert?'?':P.n)+'</span></button>';
+  $('#cell'+slot).appendChild(wrap);
+  const btn = wrap.querySelector('.pest');
+  const p = { id, type, slot, age: 0, ttl, wrap, btn, pg: wrap.querySelector('.pg') };
+  btn.addEventListener('click', () => openSheet(p));
+  S.pests.push(p);
+}
+
+function removePest(p){ p.wrap.remove(); S.pests = S.pests.filter(x => x !== p); }
+function flagReview(type, kind){ const r = S.review[type] || (S.review[type] = { wrong: 0, missed: 0 }); r[kind]++; }
+
+function missPest(p){
+  removePest(p); S.hp -= 10; S.combo = 0; S.missed++; flagReview(p.type, 'missed');
+  const c = $('#cell'+p.slot); c.classList.remove('hit'); void c.offsetWidth; c.classList.add('hit');
+}
+
+function openSheet(p){
+  if (S.paused || S.over) return;
+  S.paused = true; S.cur = p; S.answered = false;
+  const P = PESTS[p.type];
+  $('#shIco').innerHTML = ICON[p.type];
+  $('#shTitle').textContent = S.expert ? 'Hama atau penyakit apa ini?' : P.n;
+  $('#shSym').textContent = P.sym;
+  const correct = pick(P.ok);
+  const traps = Object.keys(P.trap);
+  let d = [];
+  if (traps.length && Math.random() < 0.75) d.push(pick(traps));
+  shuffle(P.bad.filter(x => !d.includes(x))).forEach(x => { if (d.length < 3) d.push(x); });
+  const opts = shuffle([correct].concat(d));
+  const box = $('#shOpts'); box.className = 'opts';
+  box.innerHTML = opts.map(id => '<button class="opt" data-id="'+id+'"><b>'+ACT[id].n+'</b><small>'+ACT[id].g+' · '+ACT[id].moa+'</small></button>').join('');
+  $('#shFb').hidden = true; $('#shNext').hidden = true; $('#shClose').hidden = false;
+  $('#sheet').hidden = false;
+}
+
+function answer(id){
+  if (S.answered) return;
+  S.answered = true;
+  const p = S.cur, P = PESTS[p.type], ok = P.ok.includes(id);
+  const box = $('#shOpts'); box.classList.add('done');
+  box.querySelectorAll('.opt').forEach(b => { const bid = b.dataset.id; if (P.ok.includes(bid)) b.classList.add('right'); else if (bid === id) b.classList.add('wrong'); });
+  const okNames = P.ok.map(x => ACT[x].n).join(', ');
+  let msg;
+  if (ok) {
+    const pts = 10 + 5*Math.min(S.combo, 8);
+    S.score += pts; S.combo++; S.right++; S.bestCombo = Math.max(S.bestCombo, S.combo);
+    msg = '<b class="ok">Tepat, +' + pts + '.</b> ' + ACT[id].n + ' (' + ACT[id].moa + ') cocok untuk ' + P.n + '. ' + P.tip;
+  } else {
+    S.hp -= 15; S.combo = 0; S.wrong++; flagReview(p.type, 'wrong');
+    const c = $('#cell'+p.slot); c.classList.remove('hit'); void c.offsetWidth; c.classList.add('hit');
+    msg = '<b class="no">Kurang tepat.</b> ' + (P.trap[id] || (ACT[id].n + ' termasuk ' + ACT[id].g.toLowerCase() + ', bukan untuk ' + P.n + '.')) + ' Pilihan yang cocok: ' + okNames + '.';
+  }
+  $('#shTitle').textContent = P.n;
+  removePest(p);
+  const fb = $('#shFb'); fb.innerHTML = msg; fb.hidden = false;
+  $('#shNext').hidden = false; $('#shClose').hidden = true; $('#shNext').focus();
+  hud();
+}
+
+function closeSheet(){
+  $('#sheet').hidden = true;
+  if (!S) return;
+  S.paused = false; S.last = performance.now(); S.cur = null;
+  if (S.hp <= 0 || S.t <= 0) endGame();
+}
+
+function endGame(){
+  if (S.over) return;
+  S.over = true; cancelAnimationFrame(rafId); hud();
+  const total = S.right + S.wrong + S.missed, acc = total ? Math.round(100*S.right/total) : 0;
+  const prev = bestScore(), isBest = S.score > prev; if (isBest) setBest(S.score);
+  const rank = S.score >= 400 ? 'Pakar perlindungan tanaman' : S.score >= 250 ? 'Penyuluh lapang' : S.score >= 120 ? 'Petani teliti' : 'Pemula';
+  const lost = S.hp <= 0;
+  const rv = Object.keys(S.review).map(k => { const r = S.review[k], P = PESTS[k];
+    return '<div><b>'+P.n+'</b> ('+[r.wrong?r.wrong+' salah':'', r.missed?r.missed+' terlewat':''].filter(Boolean).join(', ')+')<br><span class="muted">Bahan aktif yang cocok: '+P.ok.map(x => ACT[x].n).join(', ')+'</span></div>'; }).join('');
+  $('#result').innerHTML =
+    '<div class="card"><p class="muted" style="margin:0">' + (lost ? 'Tanaman rusak sebelum waktu habis' : 'Waktu habis') + ' · ' + rank + '</p><div class="big mono">' + S.score + '</div><p style="margin:6px 0 0">' + (isBest ? 'Skor terbaik baru di perangkat ini.' : prev ? 'Skor terbaik: ' + prev : '') + '</p>' +
+    '<div class="stats"><div class="m"><small>Akurasi</small><b>' + acc + '%</b></div><div class="m"><small>Kombo terbaik</small><b>x' + S.bestCombo + '</b></div><div class="m"><small>Tanaman</small><b>' + Math.max(0,S.hp) + '%</b></div></div></div>' +
+    (rv ? '<div class="card"><h2>Perlu diulang</h2><div class="rv">' + rv + '</div></div>' : '<div class="card"><h2>Tanpa kesalahan</h2><p class="muted" style="margin:4px 0 0">Semua hama dikenali dan dikendalikan dengan benar.</p></div>') +
+    '<div class="btns"><button class="btn primary" id="again">Main lagi</button><button class="btn" id="goDict">Kamus hama</button></div>' +
+    '<p class="foot">Untuk belajar. Pilihan bahan aktif disederhanakan dan bukan rekomendasi penggunaan.</p>';
+  show('result'); renderBest();
+}
+
+document.addEventListener('click', e => {
+  const t = e.target;
+  if (t.closest('#start') || t.closest('#again')) { newGame(); }
+  else if (t.closest('#openDict') || t.closest('#goDict')) { renderDict(); show('dict'); }
+  else if (t.closest('#dictBack')) { show('home'); }
+  else if (t.closest('#shNext')) { closeSheet(); }
+  else if (t.closest('#shClose')) { closeSheet(); }
+  else if (t.closest('#shOpts .opt')) { answer(t.closest('.opt').dataset.id); }
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#sheet').hidden && S && !S.answered) closeSheet(); });
+renderBest();
+</script>
+</body>
+</html>
