@@ -14,8 +14,5 @@ Ketuk hama atau penyakit yang muncul di tanaman, lalu pilih bahan aktif yang tep
 
 Main: https://meer-sa.github.io/Petak-Jagung/pembasmi-hama.html
 
-## Memperbarui
-Tiap game adalah satu file HTML. Buka file di GitHub, ketuk ikon pensil, ubah, lalu Commit. Situs ikut diperbarui dalam 1 sampai 2 menit.
-
 ## Masukan
 Terbuka untuk saran dan koreksi, terutama dari rekan agronomis. Silakan buka Issues di repo ini.
