@@ -1,11 +1,21 @@
-# Petak Jagung
+# Game Simulasi Agronomi Jagung
 
-Game simulasi budidaya jagung 1 hektar selama 110 HST. Pemain mengatur pemupukan (Urea, SP-36, KCl, NPK), irigasi, penyiangan, serta pengendalian ulat grayak, penggerek batang, tikus, bulai, dan hawar daun, sambil menghadapi cuaca yang berubah. Di akhir ada hasil panen, laba bersih, dan rincian penyebab kehilangan hasil.
+Dua game kecil untuk belajar budidaya jagung. Gratis, langsung dimainkan di browser, tanpa instalasi.
 
-Seluruh game ada dalam **satu file: `index.html`**. Tidak perlu instalasi, build, atau server. Cukup dibuka di browser.
+> Masih tahap pengembangan. Angka harga, biaya, dan respons tanaman hanya contoh yang disederhanakan, belum divalidasi dengan data atau jurnal, dan bukan rekomendasi lapangan.
 
-> Model disederhanakan untuk belajar. Harga dan respons hara hanya contoh, bukan rekomendasi dosis lapangan.
+## Petak Jagung
+Kelola 1 hektar jagung selama 110 hari: atur pupuk, irigasi, penyiangan, hama, tikus, dan penyakit di tengah cuaca yang berubah. Di akhir ada hasil panen, laba, dan rincian penyebab kehilangan hasil.
 
-## Mencoba di komputer sendiri
+Main: https://meer-sa.github.io/Petak-Jagung/
 
-Klik dua kali `index.html`. Koneksi internet hanya dipakai untuk memuat font Google. Tanpa internet game tetap jalan dengan font bawaan.
+## Pembasmi Hama
+Ketuk hama atau penyakit yang muncul di tanaman, lalu pilih bahan aktif yang tepat sebelum waktunya habis. Ada mode ahli dan kamus hama.
+
+Main: https://meer-sa.github.io/Petak-Jagung/pembasmi-hama.html
+
+## Memperbarui
+Tiap game adalah satu file HTML. Buka file di GitHub, ketuk ikon pensil, ubah, lalu Commit. Situs ikut diperbarui dalam 1 sampai 2 menit.
+
+## Masukan
+Terbuka untuk saran dan koreksi, terutama dari rekan agronomis. Silakan buka Issues di repo ini.
