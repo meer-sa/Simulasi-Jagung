@@ -2,7 +2,7 @@
 
 Dua game kecil untuk belajar budidaya jagung. Gratis, langsung dimainkan di browser, tanpa instalasi.
 
-> Masih tahap pengembangan. Angka harga, biaya, dan respons tanaman hanya contoh yang disederhanakan, belum divalidasi dengan data atau jurnal, dan bukan rekomendasi lapangan.
+> Masih tahap pengembangan. Angka harga, biaya, dan respons tanaman hanya contoh yang disederhanakan,
 
 ## Petak Jagung
 Kelola 1 hektar jagung selama 110 hari: atur pupuk, irigasi, penyiangan, hama, tikus, dan penyakit di tengah cuaca yang berubah. Di akhir ada hasil panen, laba, dan rincian penyebab kehilangan hasil.
