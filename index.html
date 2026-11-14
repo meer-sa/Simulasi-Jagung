@@ -1,0 +1,739 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Petak Jagung</title>
+<meta name="description" content="Game simulasi budidaya jagung 1 hektar: atur pupuk, air, hama, tikus, dan penyakit di tengah cuaca yang berubah sampai panen.">
+<meta name="theme-color" content="#2a7a3b">
+<meta property="og:title" content="Petak Jagung">
+<meta property="og:description" content="Game simulasi budidaya jagung 1 hektar: atur pupuk, air, hama, tikus, dan penyakit di tengah cuaca yang berubah sampai panen.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232a7a3b'/%3E%3Cellipse cx='16' cy='15' rx='5' ry='10' fill='%23f2b705'/%3E%3Cpath d='M16 28C12 22 8 20 5 21c3 5 8 7 11 7zM16 28c4-6 8-8 11-7-3 5-8 7-11 7z' fill='%238fd16b'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@500;600&family=Public+Sans:wght@400;500;600&display=swap">
+<style>
+html{color-scheme:light}
+:root{padding-top:env(safe-area-inset-top,0px)}
+body{margin:0}
+[hidden]{display:none!important}
+/* Layout: kolom kiri = petak + kondisi lahan, kolom kanan = aksi + jurnal; satu kolom di layar sempit. */
+:root{
+  --bg:#eef2ec; --surface:#ffffff; --surface2:#e5ece2; --ink:#14231a; --muted:#52645a; --line:#cdd8ca;
+  --leaf:#2a7a3b; --leaf-ink:#ffffff; --corn:#e0a800; --water:#2b79b8;
+  --good:#2f9e4f; --warn:#d9822b; --bad:#c23b2a; --track:#d9e3d6;
+  --font-display:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --font-body:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font-mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1511; --surface:#16211a; --surface2:#1d2b22; --ink:#e4efe6; --muted:#9bb0a1; --line:#2b3b30;
+    --leaf:#4fbf68; --leaf-ink:#06210f; --corn:#f0bd2e; --water:#5aa9e6;
+    --good:#58c277; --warn:#e8993f; --bad:#ec6a58; --track:#25352b; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1511; --surface:#16211a; --surface2:#1d2b22; --ink:#e4efe6; --muted:#9bb0a1; --line:#2b3b30;
+  --leaf:#4fbf68; --leaf-ink:#06210f; --corn:#f0bd2e; --water:#5aa9e6;
+  --good:#58c277; --warn:#e8993f; --bad:#ec6a58; --track:#25352b; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding-block:18px 8px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--font-display);margin:0;text-wrap:balance;line-height:1.15}
+h1{font-size:clamp(26px,5vw,38px);font-weight:800;letter-spacing:-.01em}
+h2{font-size:18px;font-weight:700}
+h3{font-size:15px;font-weight:700}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.top{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px;margin-bottom:14px}
+.top p{margin:0;color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0}
+.grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:14px;align-items:start}
+.col{display:flex;flex-direction:column;gap:14px;min-width:0}
+@media (max-width:820px){.grid{grid-template-columns:minmax(0,1fr)}}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid var(--water);outline-offset:2px}
+.btn{border:1px solid var(--line);background:var(--surface2);border-radius:8px;padding:9px 14px;font-weight:600;min-height:42px}
+.btn:hover{border-color:var(--leaf)}
+.btn.primary{background:var(--leaf);color:var(--leaf-ink);border-color:var(--leaf)}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+/* setup */
+.setup{max-width:640px;margin:8px auto 0;display:flex;flex-direction:column;gap:16px}
+fieldset{border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+legend{font-family:var(--font-display);font-weight:700;margin-bottom:6px;padding:0}
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.opt{position:relative}
+.opt input{position:absolute;opacity:0;inset:0;cursor:pointer}
+.opt span{display:block;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--surface);height:100%}
+.opt b{display:block}
+.opt small{color:var(--muted);display:block;line-height:1.35}
+.opt input:checked+span{border-color:var(--leaf);background:var(--surface2);box-shadow:inset 0 0 0 1px var(--leaf)}
+.opt input:focus-visible+span{outline:3px solid var(--water);outline-offset:2px}
+/* scene */
+.scene{padding:0;overflow:hidden;position:relative}
+.scene svg{display:block;width:100%;height:auto}
+.hud{position:absolute;left:10px;right:10px;top:10px;display:flex;justify-content:space-between;gap:8px;pointer-events:none}
+.chip{background:rgba(255,255,255,.88);color:#14231a;border-radius:999px;padding:4px 11px;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px}
+.fc{position:absolute;left:10px;bottom:10px;display:flex;gap:6px;flex-wrap:wrap}
+.fc .chip{font-size:12px;padding:3px 9px}
+.rain line{stroke:#e8f3fb;stroke-width:1.6;stroke-linecap:round;opacity:.75;animation:fall .8s linear infinite}
+@keyframes fall{from{transform:translateY(-50px)}to{transform:translateY(400px)}}
+@media (prefers-reduced-motion:reduce){.rain line{animation:none}}
+.tl{display:flex;gap:2px;padding:10px 12px 4px}
+.tl i{display:block;height:8px;border-radius:3px;background:var(--track)}
+.tl i.past{background:var(--leaf);opacity:.55}
+.tl i.now{background:var(--corn)}
+.stg{padding:2px 12px 12px;display:flex;flex-direction:column;gap:2px}
+.stg b{font-family:var(--font-display);font-size:16px}
+.hint{background:var(--surface2);border-radius:8px;padding:8px 10px;font-size:13.5px;margin-top:6px}
+/* status */
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:12px 10px}
+.metric small{display:block;color:var(--muted);font-size:12.5px}
+.metric .n{font-family:var(--font-mono);font-weight:600;font-size:clamp(17px,4.4vw,22px);font-variant-numeric:tabular-nums}
+.row{margin-top:9px}
+.rl{display:flex;justify-content:space-between;gap:8px;font-size:13.5px}
+.rl b{font-family:var(--font-mono);font-weight:600;font-size:13px;font-variant-numeric:tabular-nums}
+.trk{position:relative;height:10px;background:var(--track);border-radius:5px;margin-top:3px;overflow:hidden}
+.fl{display:block;height:100%;border-radius:5px;transition:width .25s}
+.mk{position:absolute;top:0;bottom:0;width:2px;background:var(--ink);opacity:.55}
+.row small{color:var(--muted);font-size:12px;display:block;margin-top:2px}
+.grp{margin-top:14px;padding-top:10px;border-top:1px solid var(--line)}
+.grp>h3{margin-bottom:0}
+.spark{width:100%;height:42px;display:block;margin-top:6px}
+.chk{display:flex;gap:8px;align-items:center;font-size:13.5px;margin-top:10px;color:var(--muted)}
+.chk input{width:18px;height:18px;accent-color:var(--leaf)}
+/* panel */
+.tabs{display:flex;gap:4px;background:var(--surface2);border-radius:10px;padding:4px;margin-bottom:12px}
+.tab{flex:1;border:0;background:transparent;border-radius:7px;padding:8px 6px;font-weight:600;min-height:40px}
+.tab[aria-selected="true"]{background:var(--surface);box-shadow:0 1px 2px rgba(0,0,0,.15)}
+.seg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.seg button{border:1.5px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 4px;font-weight:600;font-size:13.5px;min-height:42px}
+.seg button[aria-pressed="true"]{border-color:var(--leaf);background:var(--surface2);box-shadow:inset 0 0 0 1px var(--leaf)}
+.dose{display:flex;justify-content:space-between;align-items:baseline;margin-top:14px}
+input[type=range]{width:100%;accent-color:var(--leaf);margin:6px 0 2px;height:28px}
+.prev{background:var(--surface2);border-radius:10px;padding:10px 12px;margin:8px 0 12px;display:flex;flex-direction:column;gap:5px;font-size:13.5px}
+.prev .ln{display:flex;justify-content:space-between;gap:10px}
+.prev .ln b{font-family:var(--font-mono);font-weight:600;font-size:13px;text-align:right;font-variant-numeric:tabular-nums}
+.up{color:var(--good)} .dn{color:var(--bad)} .wn{color:var(--warn)}
+.act{display:flex;gap:12px;justify-content:space-between;align-items:center;padding:11px 0;border-top:1px solid var(--line)}
+.act:first-child{border-top:0;padding-top:0}
+.act p{margin:2px 0 0;font-size:13px;color:var(--muted)}
+.act .btn{flex:none;min-width:98px}
+.log{max-height:260px;overflow:auto;display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.log div{display:flex;gap:8px;font-size:13.5px;line-height:1.4}
+.log .d{font-family:var(--font-mono);font-size:12px;color:var(--muted);min-width:42px;padding-top:1px}
+.log .dot{width:8px;height:8px;border-radius:50%;margin-top:6px;flex:none;background:var(--muted)}
+.log .warn .dot{background:var(--warn)} .log .bad .dot{background:var(--bad)} .log .good .dot{background:var(--good)} .log .act2 .dot{background:var(--water)}
+/* controls */
+.bar{position:sticky;bottom:0;z-index:5;background:var(--bg);border-top:1px solid var(--line);margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center;padding-top:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.bar .btn{flex:1 1 120px;max-width:240px}
+/* result */
+.res{display:flex;flex-direction:column;gap:14px;max-width:760px;margin:0 auto}
+.big{font-family:var(--font-display);font-weight:800;font-size:clamp(34px,9vw,54px);line-height:1}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl td{padding:5px 0;border-bottom:1px solid var(--line)}
+.tbl td:last-child{text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.tbl tr.t td{font-weight:700;border-bottom:0}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.foot{color:var(--muted);font-size:12.5px;margin-top:6px}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <h1>Petak Jagung</h1>
+    <p>Simulasi budidaya jagung 1 hektar, dari tanam sampai panen</p>
+  </header>
+
+  <section id="setup" class="setup card">
+    <h2>Siapkan lahan</h2>
+    <p class="muted" style="margin:0">Kamu mengelola satu petak jagung hibrida selama 110 hari setelah tanam (HST). Setiap hari cuaca berubah, hara terserap, dan hama atau penyakit bisa datang. Atur pupuk, air, dan perlindungan tanaman untuk mengejar hasil dan laba tertinggi.</p>
+    <fieldset>
+      <legend>Musim tanam</legend>
+      <div class="opts">
+        <label class="opt"><input type="radio" name="season" value="hujan"><span><b>Musim hujan</b><small>Lembap. Risiko bulai, hawar daun, dan pencucian N tinggi.</small></span></label>
+        <label class="opt"><input type="radio" name="season" value="pancaroba" checked><span><b>Pancaroba</b><small>Hujan tidak menentu. Cocok untuk mulai.</small></span></label>
+        <label class="opt"><input type="radio" name="season" value="kemarau"><span><b>Kemarau</b><small>Kering dan panas. Ulat grayak dan cekaman air.</small></span></label>
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Kesuburan lahan</legend>
+      <div class="opts">
+        <label class="opt"><input type="radio" name="soil" value="low"><span><b>Rendah</b><small>Hara awal tipis.</small></span></label>
+        <label class="opt"><input type="radio" name="soil" value="mid" checked><span><b>Sedang</b><small>Hara awal cukup untuk minggu pertama.</small></span></label>
+        <label class="opt"><input type="radio" name="soil" value="high"><span><b>Tinggi</b><small>Bahan organik baik.</small></span></label>
+      </div>
+    </fieldset>
+    <label class="chk" style="color:var(--ink);margin-top:0"><input type="checkbox" id="seedTreat"> Perlakuan benih metalaksil (Rp 150.000), menekan risiko bulai</label>
+    <button id="startBtn" class="btn primary">Mulai tanam</button>
+    <p class="foot" style="margin:0">Harga jual jagung pipil contoh Rp 5.500/kg. Model disederhanakan untuk belajar; angka harga dan respons hara hanya contoh.</p>
+  </section>
+
+  <main id="game" hidden>
+    <div class="grid">
+      <div class="col">
+        <section class="card scene" aria-label="Petak jagung">
+          <div id="sceneBox"></div>
+          <div class="hud"><span class="chip" id="hudStage"></span><span class="chip" id="hudWx"></span></div>
+          <div class="fc" id="hudFc"></div>
+          <div class="tl" id="tl"></div>
+          <div class="stg"><b id="stgName"></b><span class="muted" id="stgSub"></span><div class="hint" id="stgHint"></div></div>
+        </section>
+        <section class="card" id="status"></section>
+      </div>
+      <div class="col">
+        <section class="card panel">
+          <div class="tabs" role="tablist">
+            <button class="tab" role="tab" data-tab="pupuk" aria-selected="true">Pupuk</button>
+            <button class="tab" role="tab" data-tab="air" aria-selected="false">Air &amp; gulma</button>
+            <button class="tab" role="tab" data-tab="lindung" aria-selected="false">Proteksi</button>
+          </div>
+          <div id="tab-pupuk">
+            <div class="seg" id="prod" role="group" aria-label="Jenis pupuk">
+              <button data-p="urea" aria-pressed="true">Urea</button>
+              <button data-p="sp36" aria-pressed="false">SP-36</button>
+              <button data-p="kcl" aria-pressed="false">KCl</button>
+              <button data-p="npk" aria-pressed="false">NPK</button>
+            </div>
+            <div class="dose"><label for="dose">Dosis per hektar</label><b class="mono" id="doseOut"></b></div>
+            <input id="dose" type="range" min="0" max="500" step="25" value="150">
+            <div class="prev" id="fertPrev"></div>
+            <button class="btn primary" id="doFert" style="width:100%">Tebar pupuk</button>
+          </div>
+          <div id="tab-air" hidden></div>
+          <div id="tab-lindung" hidden></div>
+        </section>
+        <section class="card">
+          <h2>Jurnal lapang</h2>
+          <div class="log" id="log"></div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <section id="result" class="res" hidden></section>
+  <footer class="foot" style="text-align:center;margin:18px 0 0">Petak Jagung v1.1 · simulasi untuk belajar, angka harga dan respons hara hanya contoh.</footer>
+</div>
+
+<div class="bar" id="bar" hidden>
+  <button class="btn" id="next1">Lanjut 1 hari</button>
+  <button class="btn primary" id="next7">Lanjut 7 hari</button>
+  <button class="btn" id="harvest" hidden>Panen sekarang</button>
+</div>
+
+<script>
+/*ENGINE_START*/
+const DAYS = 110, YMAX = 11.5, FC = 120, WP = 35;
+const REQ = { N: 160, P: 40, K: 80 };
+const PRICE = { jagung: 5500, urea: 2500, sp36: 3000, kcl: 11000, npk: 2800 };
+const COSTS = { tetap: 4000000, tenaga: 50000, irigasi: 150000, siang: 400000, insek: 250000, fungi: 300000, rogue: 300000, benih: 150000, tikus: 200000 };
+const WX = { cerah:{n:'Cerah',light:1}, berawan:{n:'Berawan',light:.75}, hujan:{n:'Hujan',light:.55}, lebat:{n:'Hujan lebat',light:.45} };
+const STAGES = [
+  {from:0,  code:'VE',     name:'Perkecambahan',   hint:'Jaga tanah tetap lembap. Bulai paling berbahaya sejak berkecambah sampai sekitar V6.'},
+  {from:8,  code:'V3-V6',  name:'Vegetatif awal',  hint:'Susulan N pertama biasanya sekitar 14 sampai 21 HST. Gulma paling merugikan sampai sekitar V10, jadi siangi lebih awal.'},
+  {from:26, code:'V7-V12', name:'Vegetatif cepat', hint:'Serapan hara melonjak. Susulan N kedua sekitar 35 sampai 42 HST. Pantau ulat grayak di pucuk dan hawar daun.'},
+  {from:46, code:'VT',     name:'Keluar malai',    hint:'Jangan sampai kurang air atau hara menjelang berbunga.'},
+  {from:56, code:'R1',     name:'Silking',         hint:'Fase paling peka terhadap cekaman air dan panas. Irigasi bila tanah mengering.'},
+  {from:63, code:'R2-R3',  name:'Pengisian biji',  hint:'Pertahankan daun tetap hijau. Lindungi dari hawar daun.'},
+  {from:81, code:'R4-R5',  name:'Biji mengeras',   hint:'Tanaman hampir tidak menyerap hara lagi, pupuk tambahan sia-sia.'},
+  {from:101,code:'R6',     name:'Masak fisiologis',hint:'Lapisan hitam terbentuk di pangkal biji. Boleh panen, atau tunggu kadar air turun.'}
+];
+const stageIdx = h => { let k = 0; STAGES.forEach((s,i)=>{ if (h >= s.from) k = i; }); return k; };
+
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const clamp = (x,a,b) => Math.max(a, Math.min(b, x));
+
+const W = [], WW = [], HW = [];
+(function(){
+  let s = 0, s2 = 0, s3 = 0;
+  for (let d = 0; d <= DAYS; d++) {
+    W[d] = d === 0 ? 0 : Math.exp(-Math.pow((d-50)/21, 2));
+    s += W[d];
+  }
+  for (let d = 0; d <= DAYS; d++) W[d] /= s;
+  for (let d = 0; d <= DAYS; d++) { WW[d] = W[d] * (1 + 0.7*((d>=50 && d<=68)?1:0)); s2 += WW[d]; }
+  for (let d = 0; d <= DAYS; d++) WW[d] /= s2;
+  for (let d = 0; d <= DAYS; d++) { HW[d] = (d>0 && d<=70) ? Math.exp(-Math.pow((d-32)/13, 2)) : 0; s3 += HW[d]; }
+  for (let d = 0; d <= DAYS; d++) HW[d] /= s3;
+})();
+
+function kc(d){ return d<15 ? 0.3+0.02*d : d<50 ? 0.6+(d-15)*(0.6/35) : d<80 ? 1.2 : Math.max(0.6, 1.2-(d-80)*0.02); }
+function waterFactor(w){ return w<=WP ? 0.15 : w>=70 ? 1 : 0.15 + 0.85*(w-WP)/(70-WP); }
+
+function genWeather(rng, season){
+  const P = { hujan:{a:.35,b:.65,t:27,ts:1.6}, pancaroba:{a:.2,b:.5,t:28,ts:2}, kemarau:{a:.07,b:.35,t:29.5,ts:2.4} }[season];
+  const out = [{type:'berawan',temp:27,mm:0}];
+  let prev = false, hs = -1, hl = 0;
+  if (season !== 'hujan' && rng() < 0.6) { hs = 48 + Math.floor(rng()*14); hl = 5 + Math.floor(rng()*4); }
+  for (let d = 1; d <= DAYS; d++) {
+    const heat = d >= hs && d < hs + hl;
+    const rain = !heat && rng() < (prev ? P.b : P.a);
+    let type, mm = 0;
+    if (rain) {
+      if (rng() < 0.2) { type = 'lebat'; mm = 35 + Math.round(rng()*25); } else { type = 'hujan'; mm = 8 + Math.round(rng()*17); }
+    } else {
+      type = rng() < (season==='kemarau' || heat ? 0.85 : 0.6) ? 'cerah' : 'berawan';
+    }
+    let t = P.t + (rng()+rng()-1)*P.ts*1.5 + (type==='cerah'?1.2:0) - (rain?2:0) + (heat?4.5:0);
+    out.push({type, temp: Math.round(t*10)/10, mm, heat});
+    prev = rain;
+  }
+  return out;
+}
+
+function newState(opts){
+  const seed = opts.seed || ((Math.random()*1e9)|0);
+  const rng = mulberry32(seed);
+  const wx = genWeather(rng, opts.season);
+  const types = Object.keys(WX);
+  const fcOK = [], fcAlt = [];
+  for (let d = 0; d <= DAYS; d++) { fcOK[d] = [rng()<.9, rng()<.74, rng()<.6]; fcAlt[d] = types[Math.floor(rng()*4)]; }
+  const st = { low:{N:25,P:12,K:30}, mid:{N:40,P:20,K:45}, high:{N:60,P:30,K:60} }[opts.soil];
+  const G = {
+    opts: Object.assign({}, opts, {seed}), seed, rng, wx, fcOK, fcAlt, hst: 0,
+    water: 85, N: st.N, P: st.P, K: st.K,
+    weed: 10, faw: 0, borer: 0, bulai: 0, blight: 0, rat: 0, ratDmg: 0, ratProt: 0, insProt: 0, fungProt: 0, waterlog: 0, lodge: 0,
+    acc: 0, accW: 0, S: 0, vig: 0.9, hist: [], log: [], flag: {}, done: false, result: null,
+    cost: { tetap: COSTS.tetap + (opts.seedTreat ? COSTS.benih : 0), pupuk: 0, air: 0, gulma: 0, pestisida: 0 },
+    loss: { air:0, hara:0, gulma:0, hama:0, penyakit:0, suhu:0 }
+  };
+  G.log.unshift({d:0, txt:'Benih ditanam. Semoga hujan datang tepat waktu.', kind:'info'});
+  return G;
+}
+
+const standF = G => Math.max(0.3, 1 - 0.0065*G.bulai);
+const lodgeF = G => 1 - G.lodge;
+const ratF = G => 1 - Math.min(0.6, G.ratDmg*0.01);
+function projYield(G){ return YMAX * (G.acc + (1-G.accW)*G.vig) * standF(G) * lodgeF(G) * ratF(G); }
+function needNext(G, days){
+  let s = 0; for (let k = 1; k <= days; k++) { const d = G.hst + k; if (d <= DAYS) s += W[d]; }
+  return { N: REQ.N*s, P: REQ.P*s, K: REQ.K*s };
+}
+function nutFactor(st, need){
+  const f = (S,D) => 0.2 + 0.8*(D > 0.5 ? Math.min(1, S/D) : 1);
+  return Math.pow(f(st.N,need.N),0.6) * Math.pow(f(st.P,need.P),0.2) * Math.pow(f(st.K,need.K),0.2);
+}
+function fertGain(prod, dose){
+  const g = { N:0, P:0, K:0 };
+  if (prod==='urea') g.N = dose*0.46*0.85;
+  if (prod==='sp36') g.P = dose*0.36*0.6;
+  if (prod==='kcl')  g.K = dose*0.60*0.90;
+  if (prod==='npk')  { g.N = dose*0.15*0.85; g.P = dose*0.15*0.6; g.K = dose*0.15*0.90; }
+  return g;
+}
+function fertCost(prod, dose){ return dose > 0 ? dose*PRICE[prod] + COSTS.tenaga : 0; }
+
+function stepDay(G){
+  if (G.done) return [];
+  const d = ++G.hst, wx = G.wx[d], rng = G.rng, season = G.opts.season, al = [];
+  const note = (txt, kind) => G.log.unshift({d, txt, kind: kind || 'info'});
+  const alert = (txt, kind) => { note(txt, kind || 'warn'); al.push(txt); };
+  const once = (key, cond, txt, kind) => { if (cond && !G.flag[key]) { G.flag[key] = 1; alert(txt, kind); } else if (!cond && G.flag[key] === 2) {} };
+
+  const si0 = stageIdx(d-1), si1 = stageIdx(d);
+  if (si1 !== si0) note('Memasuki fase ' + STAGES[si1].code + ': ' + STAGES[si1].name + '.', 'good');
+
+  // air tanah
+  G.water += wx.mm;
+  let eto = wx.type==='cerah' ? 4.8 : wx.type==='berawan' ? 3.4 : 2.0;
+  if (wx.temp > 34) eto *= 1.15;
+  G.water = Math.max(5, G.water - eto*kc(d)*clamp((G.water-25)/45, 0.15, 1));
+  let drained = 0;
+  if (G.water > FC) { drained = G.water - FC; G.water = FC; }
+  const dr = Math.min(1, drained/40);
+  if (wx.mm > 0 && G.water >= FC-2) G.waterlog++; else if (G.water < FC-10) G.waterlog = 0;
+  const fWL = G.waterlog >= 2 ? 0.88 : 1;
+  const fW = waterFactor(G.water) * fWL;
+  if (wx.type === 'lebat') note('Hujan lebat ' + wx.mm + ' mm. Sebagian N dan K tercuci.', 'warn');
+  if (wx.heat && d>=52 && d<=66) once('heat', true, 'Gelombang panas saat silking. Suhu siang di atas 35 C.', 'bad');
+  if (G.water < 55 && !G.flag.dry) { G.flag.dry = 1; alert('Air tanah menipis (' + Math.round(G.water) + ' mm). Pertimbangkan irigasi.', 'warn'); }
+  if (G.water > 75) G.flag.dry = 0;
+  if (G.waterlog === 2) alert('Lahan tergenang. Akar kekurangan oksigen.', 'warn');
+
+  // hara
+  G.N *= (1 - 0.010 - 0.14*dr - (wx.type==='lebat' ? 0.05 : wx.type==='hujan' ? 0.02 : 0));
+  G.P *= 0.998; G.K *= (1 - 0.003 - 0.06*dr);
+  G.N += 0.5; G.P += 0.05; G.K += 0.2;
+  const dem = { N: REQ.N*W[d], P: REQ.P*W[d], K: REQ.K*W[d] };
+  const take = k => { const u = Math.min(G[k], dem[k]); G[k] -= u; return dem[k] > 0.02 ? u/dem[k] : 1; };
+  const sN = take('N'), sP = take('P'), sK = take('K');
+  const f1 = s => 0.2 + 0.8*s;
+  let fNut = Math.pow(f1(sN),0.6) * Math.pow(f1(sP),0.2) * Math.pow(f1(sK),0.2);
+  const nExcess = G.N > 200;
+  if (nExcess) fNut *= 1 - Math.min(0.2, (G.N-200)*0.0015);
+  once('nex', nExcess && d > 20, 'N tanah berlebih. Tanaman lunak, rawan rebah dan hawar.', 'warn');
+  once('ndef', sN < 0.7 && d > 14 && dem.N > 0.3, 'Daun bawah menguning dari ujung. Tanda kekurangan N.', 'bad');
+
+  // cahaya dan suhu
+  const fLight = 0.6 + 0.4*WX[wx.type].light, t = wx.temp;
+  let fTemp = t < 18 ? 0.4 : t < 25 ? 0.4 + 0.6*(t-18)/7 : t <= 32 ? 1 : t <= 38 ? 1 - 0.8*(t-32)/6 : 0.2;
+  if (d >= 52 && d <= 66 && t > 35) fTemp *= 0.85;
+
+  // gulma
+  G.weed = Math.min(100, G.weed + 1.1 + (wx.mm > 0 ? 0.5 : 0) + (G.water > 60 ? 0.3 : 0));
+  const critW = d >= 7 && d <= 50 ? 1 : 0.45;
+  const fWeed = 1 - 0.0055*G.weed*critW;
+  once('weed', G.weed >= 30 && d <= 50, 'Gulma sudah menutup sela barisan (' + Math.round(G.weed) + '%). Siangi sebelum periode kritis lewat.', 'warn');
+
+  // ulat grayak
+  const pFaw = { hujan:0.025, pancaroba:0.04, kemarau:0.055 }[season];
+  if (G.faw === 0 && d >= 8 && d <= 55 && rng() < pFaw) { G.faw = 10; alert('Ditemukan kelompok telur dan larva ulat grayak di pucuk.', 'warn'); }
+  if (G.faw > 0) {
+    const gr = wx.type==='lebat' ? -0.25 : wx.type==='hujan' ? -0.03 : wx.type==='cerah' ? 0.11 : 0.08;
+    G.faw = G.faw*(1 + gr*(G.insProt > 0 ? 0.1 : 1)) - 0.8;
+    if (d > 62) G.faw *= 0.9;
+    G.faw = clamp(G.faw, 0, 100);
+    if (G.faw < 1) G.faw = 0;
+  }
+  once('faw20', G.faw >= 20, 'Serangan ulat grayak melewati ambang 20% tanaman. Kendalikan segera.', 'bad');
+  if (G.faw === 0) G.flag.faw20 = 0;
+  const fFAW = 1 - 0.0075*G.faw*(d <= 45 ? 1 : 0.6);
+
+  // penggerek batang
+  if (G.borer === 0 && d >= 25 && d <= 60 && rng() < 0.03) { G.borer = 8; alert('Lubang gerekan dan serbuk gerek terlihat di batang. Penggerek batang.', 'warn'); }
+  if (G.borer > 0) {
+    G.borer = clamp(G.borer + 0.07*G.borer*(G.insProt > 0 ? 0.5 : 1) - 0.3, 0, 100);
+    if (d > 70) G.borer *= 0.97;
+    if (G.borer < 1) G.borer = 0;
+  }
+  if (G.borer > 40 && d > 60) G.lodge = Math.max(G.lodge, (G.borer-40)/100*0.3);
+  once('bor25', G.borer >= 25, 'Penggerek batang meluas, batang mulai patah.', 'bad');
+  const fBorer = 1 - 0.004*G.borer;
+
+  // bulai
+  if (d >= 5 && d <= 35) {
+    const rainy = wx.mm > 0;
+    const m = { hujan:1.4, pancaroba:1, kemarau:0.5 }[season] * (G.opts.seedTreat ? 0.15 : 1) * (G.fungProt > 0 ? 0.35 : 1);
+    G.bulai = Math.min(100, G.bulai + (rainy ? 2.0 : 0.2)*m);
+  }
+  once('bul10', G.bulai >= 10, 'Muncul tanaman bergaris klorosis dan kerdil. Gejala bulai.', 'bad');
+  const fBulai = 1 - 0.004*G.bulai;
+
+  // hawar daun
+  if (d >= 30 && d <= 100) {
+    const inc = (wx.type==='cerah' ? -0.6 : wx.type==='berawan' ? 1.0 : 1.8) * (G.fungProt > 0 ? 0.25 : 1) * (nExcess ? 1.3 : 1);
+    G.blight = clamp(G.blight + inc + (d===30 ? 3 : 0), 0, 100);
+  }
+  once('bli15', G.blight >= 15, 'Bercak lonjong cokelat di daun. Hawar daun mulai berkembang.', 'warn');
+  const fBlight = 1 - 0.005*G.blight;
+
+  // tikus
+  const pRat = { hujan:0.012, pancaroba:0.018, kemarau:0.025 }[season] * (G.weed > 40 ? 1.8 : 1);
+  if (G.rat === 0 && ((d >= 2 && d <= 14) || (d >= 55 && d <= 100)) && rng() < pRat) {
+    G.rat = 8; alert(d <= 14 ? 'Lubang tikus dan benih tergali di barisan tanam.' : 'Ada bekas gigitan tikus di tongkol dan jejak di sela barisan.', 'warn');
+  }
+  if (G.rat > 0) {
+    G.rat = clamp(G.rat*(G.ratProt > 0 ? 0.92 : 1.08) + (G.weed > 40 ? 0.5 : 0) - 0.2, 0, 100);
+    const sm = d <= 14 ? 1.5 : (d >= 55 && d <= 100) ? 1 : 0.3;
+    G.ratDmg = Math.min(60, G.ratDmg + G.rat*0.015*sm);
+    if (G.rat < 1) G.rat = 0;
+  }
+  once('rat10', G.rat >= 10, 'Populasi tikus melewati ambang 10%. Lakukan gropyokan dan pasang umpan.', 'bad');
+  if (G.rat === 0) G.flag.rat10 = 0;
+  if (G.ratProt > 0) G.ratProt--;
+  if (G.insProt > 0) G.insProt--;
+  if (G.fungProt > 0) G.fungProt--;
+
+  const f = { air: fW, hara: fNut, gulma: fWeed, hama: fFAW*fBorer, penyakit: fBulai*fBlight, suhu: fLight*fTemp };
+  const F = f.air*f.hara*f.gulma*f.hama*f.penyakit*f.suhu;
+  G.acc += WW[d]*F; G.accW += WW[d];
+  for (const k in f) G.loss[k] += WW[d]*(1 - f[k]);
+  if (d <= 70) G.S = Math.min(1, G.S + HW[d]*Math.min(1, F*1.15));
+  G.vig = G.vig*0.7 + F*0.3;
+  G.hist.push({ d, y: projYield(G) });
+  if (d >= DAYS) finish(G, 1);
+  return al;
+}
+
+function finish(G, priceF){
+  G.done = true;
+  const sF = standF(G), lF = lodgeF(G);
+  const Yb = YMAX*G.acc, Y1 = Yb*sF, Y2 = Y1*ratF(G), Y = Y2*lF;
+  const raw = Object.values(G.loss).reduce((a,b)=>a+b,0) || 1, pot = Math.max(0, YMAX - Yb);
+  const share = {};
+  for (const k in G.loss) share[k] = pot*G.loss[k]/raw;
+  share.penyakit += Yb - Y1;
+  share.hama += Y1 - Y2;
+  share.rebah = Y2 - Y;
+  const price = PRICE.jagung * (G.hst < 106 ? 0.97 : 1);
+  const revenue = Y*1000*price;
+  const cost = Object.values(G.cost).reduce((a,b)=>a+b,0);
+  G.result = { Y, price, revenue, cost, profit: revenue - cost, share, early: G.hst < 106 };
+}
+/*ENGINE_END*/
+
+/* ---------- UI ---------- */
+const $ = s => document.querySelector(s);
+let G = null, lastOpts = null, fert = { prod:'urea', dose:150 }, showHint = true, tab = 'pupuk';
+const rp = n => (n < 0 ? '-' : '') + 'Rp ' + Math.round(Math.abs(n)).toLocaleString('id-ID');
+const num = (n,dp) => n.toLocaleString('id-ID', { minimumFractionDigits: dp||0, maximumFractionDigits: dp||0 });
+const FERT = {
+  urea:{ n:'Urea (46% N)', max:500, def:150 }, sp36:{ n:'SP-36 (36% P2O5)', max:250, def:100 },
+  kcl:{ n:'KCl (60% K2O)', max:200, def:75 }, npk:{ n:'NPK 15-15-15', max:500, def:200 }
+};
+
+function wxIcon(type, sz){
+  sz = sz || 16;
+  const sun = '<circle cx="12" cy="12" r="5" fill="#f2b705"/><g stroke="#f2b705" stroke-width="2" stroke-linecap="round"><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></g>';
+  const cloud = c => '<path d="M7 18a4 4 0 0 1-.5-7.97A5.5 5.5 0 0 1 17 9.5a4.2 4.2 0 0 1 .5 8.5z" fill="'+c+'"/>';
+  const drops = '<g stroke="#2b79b8" stroke-width="2" stroke-linecap="round"><path d="M8 20l-1 2M12 20l-1 2M16 20l-1 2"/></g>';
+  const body = type==='cerah' ? sun : type==='berawan' ? cloud('#8ea0ab') : type==='hujan' ? cloud('#7d8f9b')+drops : cloud('#4c5b66')+drops.replace('M8 20l-1 2','M8 19l-1 3').replace('M12 20l-1 2','M12 19l-1 3').replace('M16 20l-1 2','M16 19l-1 3');
+  return '<svg width="'+sz+'" height="'+sz+'" viewBox="0 0 24 24" aria-hidden="true">'+body+'</svg>';
+}
+
+function plantDef(G){
+  const s = G.S, hst = G.hst;
+  const H = hst < 1 ? 6 : Math.max(14, 16 + 262*s);
+  const n = Math.max(2, Math.min(14, Math.round(2 + 13*Math.min(1, s*1.08))));
+  const top = 340 - H;
+  const v = clamp((G.vig-0.35)/0.55, 0, 1), sen = clamp((hst-85)/25, 0, 1);
+  const fWn = waterFactor(G.water);
+  const col = old => {
+    let h = 50 + 65*v, sa = 40 + 28*v, l = 30 + 6*(1-v);
+    const so = Math.min(1, sen + (old && (G.vig < 0.7 || hst > 60) ? 0.35 : 0));
+    h = h*(1-so) + 38*so; sa = sa*(1-so) + 35*so; l = l*(1-so) + 55*so;
+    return 'hsl(' + (h|0) + ' ' + (sa|0) + '% ' + (l|0) + '%)';
+  };
+  let out = '';
+  out += '<path d="M150 342 L150 ' + top + '" stroke="' + col(false).replace(/\d+%\)$/, '24%)') + '" stroke-width="' + (3 + 6*Math.min(1,s)) + '" stroke-linecap="round" fill="none"/>';
+  for (let i = 0; i < n; i++) {
+    const t = (i + 0.5)/n, y0 = 340 - H*(0.10 + 0.82*t);
+    let len = (26 + 78*Math.sin(Math.PI*(0.12 + 0.78*t))) * (0.35 + 0.65*Math.min(1, s*1.5));
+    if (s < 0.03) len = 14 + hst*1.6;
+    const sg = i % 2 ? 1 : -1, x0 = 150;
+    const droop = len*0.55*(1 - fWn)*(0.5 + 0.5*t);
+    const ex = x0 + sg*len, ey = y0 + len*0.15 + droop, cx = x0 + sg*len*0.55, cy = y0 - len*0.42;
+    const w = Math.max(2.5, len*0.12);
+    const pt = u => [ (1-u)*(1-u)*x0 + 2*(1-u)*u*cx + u*u*ex, (1-u)*(1-u)*y0 + 2*(1-u)*u*cy + u*u*ey ];
+    const old = i < n*0.3;
+    out += '<path d="M'+x0+' '+y0+' Q'+cx+' '+(cy-w)+' '+ex+' '+ey+' Q'+cx+' '+(cy+w)+' '+x0+' '+y0+'Z" fill="'+col(old)+'"/>';
+    out += '<path d="M'+x0+' '+y0+' Q'+cx+' '+cy+' '+ex+' '+ey+'" stroke="rgba(255,255,255,.35)" stroke-width="1" fill="none"/>';
+    if (G.bulai > 8) out += '<path d="M'+x0+' '+y0+' Q'+cx+' '+cy+' '+ex+' '+ey+'" stroke="#eef5b0" stroke-width="2.2" opacity="'+Math.min(.9, G.bulai/60)+'" fill="none"/>';
+    const sp = Math.min(5, Math.floor(G.blight/12));
+    for (let k = 0; k < sp; k++) { const p = pt(0.3 + 0.13*k); out += '<ellipse cx="'+p[0].toFixed(1)+'" cy="'+(p[1]+1).toFixed(1)+'" rx="'+(len*0.05).toFixed(1)+'" ry="'+(len*0.022).toFixed(1)+'" fill="#7a4a24" opacity=".85"/>'; }
+    const ho = Math.min(4, Math.floor(G.faw/15));
+    for (let k = 0; k < ho; k++) { const p = pt(0.35 + 0.15*k); out += '<circle cx="'+p[0].toFixed(1)+'" cy="'+(p[1]-2).toFixed(1)+'" r="'+Math.max(1.5, len*0.025).toFixed(1)+'" fill="#4a3220"/>'; }
+  }
+  if (hst >= 46) {
+    for (let k = -3; k <= 3; k++) out += '<path d="M150 '+top+' L'+(150+k*7)+' '+(top-22+Math.abs(k)*3)+'" stroke="#d6bf72" stroke-width="1.7" stroke-linecap="round"/>';
+    if (hst >= 52 && hst < 80) for (let k = -3; k <= 3; k++) out += '<circle cx="'+(150+k*7)+'" cy="'+(top-22+Math.abs(k)*3)+'" r="1.6" fill="#f2c94c"/>';
+  }
+  if (hst >= 54) {
+    const ey = 340 - H*0.52, g = clamp((hst-54)/45, 0, 1), la = 12 + 34*g, wd = 6 + 8*g;
+    const husk = 'hsl(' + (Math.round(105 - 65*clamp((hst-80)/25,0,1))) + ' 35% ' + (Math.round(36 + 22*clamp((hst-80)/25,0,1))) + '%)';
+    out += '<g transform="rotate(-22 158 '+ey+')"><ellipse cx="160" cy="'+(ey-la/2)+'" rx="'+wd/2+'" ry="'+la/2+'" fill="'+husk+'" stroke="rgba(0,0,0,.2)"/>';
+    if (hst <= 76) for (let k = -2; k <= 2; k++) out += '<path d="M160 '+(ey-la)+' l'+(k*3)+' -9" stroke="#b98a4d" stroke-width="1.2" stroke-linecap="round"/>';
+    if (hst >= 68) out += '<ellipse cx="160" cy="'+(ey-la+3)+'" rx="'+(wd/2-1.5)+'" ry="4.5" fill="#e8b620" opacity="'+clamp((hst-68)/12,0,1)+'"/>';
+    out += '</g>';
+  }
+  return out;
+}
+
+function sceneSVG(G){
+  const wx = G.wx[G.hst], type = wx.type;
+  const sky = { cerah:['#78c0ee','#e2f3fc'], berawan:['#a8b6c0','#dde4e8'], hujan:['#73838f','#b0bbc3'], lebat:['#4e5d69','#87949e'] }[type];
+  const rainy = type === 'hujan' || type === 'lebat';
+  let s = '<svg viewBox="0 0 300 420" role="img" aria-label="Petak jagung hari ke-' + G.hst + '">';
+  s += '<defs><linearGradient id="skyg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+sky[0]+'"/><stop offset="1" stop-color="'+sky[1]+'"/></linearGradient>';
+  s += '<linearGradient id="soilg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6b4a2f"/><stop offset="1" stop-color="#3f2a1a"/></linearGradient>';
+  s += '<g id="pl">' + plantDef(G) + '</g></defs>';
+  s += '<rect width="300" height="340" fill="url(#skyg)"/>';
+  if (type === 'cerah') s += '<circle cx="250" cy="62" r="24" fill="#ffd54a"/><circle cx="250" cy="62" r="34" fill="#ffd54a" opacity=".25"/>';
+  const cc = type === 'lebat' ? '#3f4c56' : type === 'hujan' ? '#66767f' : '#f4f7f9';
+  if (type !== 'cerah') s += '<g fill="'+cc+'"><ellipse cx="80" cy="56" rx="46" ry="15"/><ellipse cx="108" cy="46" rx="30" ry="14"/><ellipse cx="220" cy="78" rx="52" ry="16"/><ellipse cx="196" cy="66" rx="28" ry="13"/></g>';
+  s += '<path d="M0 320 Q75 300 150 316 T300 312 V340 H0Z" fill="#7aa35a" opacity=".55"/>';
+  s += '<rect y="340" width="300" height="80" fill="url(#soilg)"/>';
+  s += '<rect y="340" width="300" height="80" fill="#2b79b8" opacity="' + (0.04 + 0.36*clamp(G.water/FC,0,1)).toFixed(2) + '"/>';
+  s += '<g stroke="#2a1b10" stroke-width="2" opacity=".35"><path d="M0 362H300M0 384H300M0 406H300"/></g>';
+  const tx = [20,48,95,118,182,205,240,270,35,260];
+  const nt = Math.floor(G.weed/10);
+  for (let i = 0; i < nt && i < 10; i++) { const h = 6 + G.weed*0.16; s += '<path d="M'+(tx[i]-4)+' 342 Q'+(tx[i]-3)+' '+(342-h)+' '+(tx[i]-6)+' '+(342-h-2)+' M'+tx[i]+' 342 Q'+tx[i]+' '+(342-h*1.2)+' '+tx[i]+' '+(342-h*1.3)+' M'+(tx[i]+4)+' 342 Q'+(tx[i]+3)+' '+(342-h)+' '+(tx[i]+6)+' '+(342-h-2)+'" stroke="#88b83e" stroke-width="2" fill="none" stroke-linecap="round"/>'; }
+  if (G.rat >= 8) s += '<g transform="translate(96 341)"><ellipse cx="0" cy="-5" rx="11" ry="6" fill="#7b6a5a"/><circle cx="10" cy="-6" r="4.5" fill="#7b6a5a"/><circle cx="12" cy="-10" r="2" fill="#7b6a5a"/><circle cx="13" cy="-6.5" r="0.9" fill="#111"/><path d="M-11 -5 Q-22 -2 -26 -10" stroke="#a78f84" stroke-width="1.6" fill="none"/></g>';
+  const copy = (x,k) => '<use href="#pl" transform="translate('+x+' 340) scale('+k+') translate(-150 -340)"/>';
+  const tilt = G.lodge > 0.04 ? ' rotate('+(G.lodge*60).toFixed(1)+' 150 340)' : '';
+  s += copy(14,0.5) + copy(286,0.5) + copy(58,0.66) + copy(244,0.72);
+  s += '<use href="#pl" transform="'+tilt.trim()+'"/>';
+  if (rainy) {
+    s += '<g class="rain">';
+    const n = type === 'lebat' ? 34 : 18;
+    for (let i = 0; i < n; i++) { const x = (i*37 % 300); s += '<line x1="'+x+'" y1="'+(-10 - (i*13%60))+'" x2="'+(x-5)+'" y2="'+(2 - (i*13%60))+'" style="animation-delay:-'+((i*0.17)%0.8).toFixed(2)+'s;animation-duration:'+(type==='lebat'?'.55':'.8')+'s"/>'; }
+    s += '</g>';
+  }
+  return s + '</svg>';
+}
+
+function row(label, pct, color, val, marks, note){
+  const m = (marks||[]).map(x => '<i class="mk" style="left:'+x.at+'%" title="'+x.t+'"></i>').join('');
+  return '<div class="row"><div class="rl"><span>'+label+'</span><b>'+val+'</b></div><div class="trk"><span class="fl" style="width:'+clamp(pct,0,100).toFixed(1)+'%;background:'+color+'"></span>'+m+'</div>'+(note?'<small>'+note+'</small>':'')+'</div>';
+}
+const levelColor = (v, a, b) => v >= b ? 'var(--bad)' : v >= a ? 'var(--warn)' : 'var(--good)';
+
+function renderStatus(){
+  const need = needNext(G, 14), scale = { N:240, P:80, K:120 };
+  const nut = k => { const S = G[k], D = need[k]; const c = S >= D ? 'var(--good)' : S >= D*0.6 ? 'var(--warn)' : 'var(--bad)';
+    return row(k==='N'?'Nitrogen (N)':k==='P'?'Fosfor (P2O5)':'Kalium (K2O)', S/scale[k]*100, c, num(S,0)+' kg/ha', [{at:Math.min(100,D/scale[k]*100), t:'Kebutuhan 14 hari'}], 'Kebutuhan 14 hari ke depan: ' + num(D,0) + ' kg/ha'); };
+  const wNote = G.water < WP+10 ? 'Tanaman layu' : G.water < 60 ? 'Mulai kering' : G.water >= FC-2 ? 'Jenuh, air terbuang' : 'Cukup';
+  const wCol = G.water < 50 ? 'var(--bad)' : G.water < 65 ? 'var(--warn)' : 'var(--water)';
+  const pest = (label, v, thr, tip) => row(label, v, levelColor(v, thr, thr*2), v < 1 ? 'tidak ada' : Math.round(v)+'%', [{at:thr, t:'Ambang tindakan'}], tip);
+  const sp = G.hist.length > 1 ? (() => { const ys = G.hist.map(h => h.y), mn = Math.min(...ys, 0) , mx = YMAX; const pts = G.hist.map((h,i) => (i/(DAYS-1)*200).toFixed(1)+','+(40-(h.y-mn)/(mx-mn)*38).toFixed(1)).join(' ');
+    return '<svg class="spark" viewBox="0 0 200 42" preserveAspectRatio="none" aria-label="Riwayat proyeksi hasil"><polyline points="'+pts+'" fill="none" stroke="var(--leaf)" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>'; })() : '';
+  const totalCost = Object.values(G.cost).reduce((a,b)=>a+b,0);
+  const py = projYield(G), rev = py*1000*PRICE.jagung*(G.hst < 106 ? 0.97 : 1), prof = rev - totalCost;
+  const jt = n => (n < 0 ? '-' : '') + 'Rp&nbsp;' + num(Math.abs(n)/1e6, 1) + ' jt';
+  $('#status').innerHTML =
+    '<div class="metrics"><div class="metric"><small>Proyeksi hasil</small><div class="n">'+num(py,1)+' t/ha</div></div><div class="metric"><small>Proyeksi pendapatan</small><div class="n">'+jt(rev)+'</div></div><div class="metric"><small>Biaya sejauh ini</small><div class="n">'+jt(totalCost)+'</div></div><div class="metric"><small>Proyeksi laba</small><div class="n '+(prof>=0?'up':'dn')+'">'+jt(prof)+'</div></div></div><p class="foot" style="margin:8px 0 0">Harga jual jagung pipil '+rp(PRICE.jagung)+'/kg (contoh). Panen sebelum 106 HST dipotong 3% karena kadar air.</p>'+sp+
+    '<div class="grp"><h3>Tanah</h3>'+
+      row('Air tanah', G.water/FC*100, wCol, num(G.water,0)+' mm', [{at:WP/FC*100,t:'Titik layu'}], wNote+'. Garis menandai titik layu (35 mm).')+
+      nut('N')+nut('P')+nut('K')+'</div>'+
+    '<div class="grp"><h3>Pengamatan lapang</h3>'+
+      pest('Gulma', G.weed, 25, 'Ambang 25%. Periode kritis sampai 50 HST.')+
+      pest('Ulat grayak', G.faw, 20, 'Ambang tindakan 20% tanaman terserang.')+
+      pest('Penggerek batang', G.borer, 15, 'Semprot sebelum larva masuk batang.')+
+      pest('Bulai', G.bulai, 10, 'Hanya berkembang sampai sekitar 35 HST.')+
+      pest('Hawar daun', G.blight, 20, 'Berkembang cepat saat lembap.')+pest('Tikus', G.rat, 10, 'Ambang 10%. Aktif saat tanam muda dan pengisian tongkol. Kerusakan terkumpul '+Math.round(G.ratDmg)+'%.')+'</div>'+
+    '<label class="chk"><input type="checkbox" id="hints"'+(showHint?' checked':'')+'> Tampilkan saran agronomis</label>';
+}
+
+function renderScene(){
+  const wx = G.wx[G.hst], si = stageIdx(G.hst), st = STAGES[si];
+  $('#sceneBox').innerHTML = sceneSVG(G);
+  $('#hudStage').textContent = 'HST ' + G.hst + ' / ' + DAYS;
+  $('#hudWx').innerHTML = wxIcon(wx.type, 16) + ' ' + WX[wx.type].n + ' · ' + num(wx.temp,1) + ' C';
+  let fc = '';
+  for (let k = 1; k <= 3; k++) { const d = G.hst + k; if (d > DAYS) break; const ty = G.fcOK[d][k-1] ? G.wx[d].type : G.fcAlt[d]; fc += '<span class="chip">'+wxIcon(ty,14)+' +'+k+' '+WX[ty].n+'</span>'; }
+  $('#hudFc').innerHTML = fc;
+  $('#tl').innerHTML = STAGES.map((s,i) => '<i class="'+(i<si?'past':i===si?'now':'')+'" style="flex:'+((i<STAGES.length-1?STAGES[i+1].from:DAYS+1)-s.from)+'" title="'+s.code+' '+s.name+'"></i>').join('');
+  $('#stgName').textContent = st.code + ' · ' + st.name;
+  $('#stgSub').textContent = 'Tinggi tanaman sekitar ' + Math.round(G.S*260) + ' cm';
+  const h = $('#stgHint'); h.hidden = !showHint; h.textContent = st.hint;
+}
+
+function renderLog(){
+  $('#log').innerHTML = G.log.slice(0, 60).map(e => '<div class="'+(e.kind==='bad'?'bad':e.kind==='warn'?'warn':e.kind==='good'?'good':e.kind==='act'?'act2':'')+'"><span class="d">HST '+e.d+'</span><span class="dot"></span><span>'+e.txt+'</span></div>').join('');
+}
+
+function stockAfter(st){ return { N: st.N*0.906 + 2, P: st.P*0.986 + 0.2, K: st.K*0.98 + 1 }; }
+function renderFert(){
+  const f = FERT[fert.prod];
+  $('#dose').max = f.max; if (+$('#dose').value > f.max) $('#dose').value = f.max;
+  fert.dose = +$('#dose').value;
+  $('#doseOut').textContent = num(fert.dose) + ' kg';
+  const need = needNext(G, 14), g = fertGain(fert.prod, fert.dose);
+  const b = stockAfter(G), a = stockAfter({ N:G.N+g.N, P:G.P+g.P, K:G.K+g.K });
+  const fb = nutFactor(b, need), fa = nutFactor(a, need);
+  const cover = (S,D) => D > 0.5 ? Math.min(100, S/D*100) : 100;
+  const key = fert.prod==='sp36' ? 'P' : fert.prod==='kcl' ? 'K' : 'N';
+  const klabel = { N:'Kecukupan N, 14 hari', P:'Kecukupan P, 14 hari', K:'Kecukupan K, 14 hari' }[key];
+  const delta = (fa - fb)*100;
+  const gains = []; if (g.N) gains.push('N +'+num(g.N,0)); if (g.P) gains.push('P2O5 +'+num(g.P,0)); if (g.K) gains.push('K2O +'+num(g.K,0));
+  let msg = '';
+  if (fert.dose === 0) msg = 'Geser dosis untuk melihat efeknya.';
+  else if (G.hst > 85) msg = '<span class="dn">Tanaman sudah hampir tidak menyerap hara. Pupuk ini sia-sia.</span>';
+  else if (delta < 0.5) msg = '<span class="wn">Kebutuhan 14 hari ke depan sudah terpenuhi. Tambahan ini tidak menambah pertumbuhan, dan N sebagian hilang.</span>';
+  else if (G.N + g.N > 200) msg = '<span class="wn">N tanah melewati 200 kg/ha: risiko rebah dan hawar naik.</span>';
+  else if (['lebat','hujan'].includes(G.fcAlt[G.hst+1]) && fert.prod!=='sp36') msg = '<span class="wn">Ada prakiraan hujan. Sebagian N dan K bisa tercuci.</span>';
+  $('#fertPrev').innerHTML =
+    '<div class="ln"><span>'+f.n+'</span><b>'+gains.join(' · ')+' kg/ha</b></div>'+
+    '<div class="ln"><span>'+klabel+'</span><b>'+num(cover(b[key],need[key]),0)+'% → '+num(cover(a[key],need[key]),0)+'%</b></div>'+
+    '<div class="ln"><span>Laju tumbuh dari faktor hara</span><b>'+num(fb*100,0)+'% → '+num(fa*100,0)+'% <span class="'+(delta>0.5?'up':'')+'">('+(delta>=0?'+':'')+num(delta,0)+' poin)</span></b></div>'+
+    '<div class="ln"><span>Biaya</span><b>'+rp(fertCost(fert.prod, fert.dose))+'</b></div>'+(msg?'<div>'+msg+'</div>':'');
+  $('#doFert').disabled = G.done || fert.dose === 0;
+}
+
+function actRow(id, title, desc, cost, label){
+  return '<div class="act"><div><h3>'+title+'</h3><p>'+desc+'</p><p class="mono">'+rp(cost)+'</p></div><button class="btn" data-act="'+id+'">'+label+'</button></div>';
+}
+function renderTabs(){
+  $('#tab-air').innerHTML =
+    actRow('irigasi','Irigasi 25 mm','Air tanah sekarang '+num(G.water,0)+' mm (layu di bawah 35, jenuh di 120). Sesudah irigasi: '+num(Math.min(FC,G.water+25),0)+' mm.',COSTS.irigasi,'Airi')+
+    actRow('siang','Penyiangan','Gulma '+Math.round(G.weed)+'%. Turun ke 5%. Paling berguna sebelum 50 HST.',COSTS.siang,'Siangi');
+  $('#tab-lindung').innerHTML =
+    actRow('insek','Insektisida','Ulat grayak '+Math.round(G.faw)+'%, penggerek '+Math.round(G.borer)+'%. Menekan hama dan melindungi 7 hari.',COSTS.insek,'Semprot')+
+    actRow('fungi','Fungisida','Hawar '+Math.round(G.blight)+'%, bulai '+Math.round(G.bulai)+'%. Menekan penyakit dan melindungi 10 hari.',COSTS.fungi,'Semprot')+
+    actRow('tikus','Gropyokan dan umpan tikus','Populasi tikus '+Math.round(G.rat)+'%, kerusakan terkumpul '+Math.round(G.ratDmg)+'%. Menekan populasi dan melindungi 10 hari.',COSTS.tikus,'Pasang')+
+    actRow('rogue','Cabut tanaman bulai','Menyingkirkan tanaman bergejala agar spora tidak menyebar. Hanya berguna sampai 40 HST.',COSTS.rogue,'Cabut');
+}
+
+const ACT = {
+  irigasi(){ G.water += 25; G.cost.air += COSTS.irigasi; if (G.water > FC) G.water = FC; return 'Irigasi 25 mm. Air tanah menjadi ' + num(G.water,0) + ' mm.'; },
+  siang(){ G.weed = 5; G.cost.gulma += COSTS.siang; return 'Gulma disiangi, tersisa sekitar 5%.'; },
+  insek(){ G.faw *= 0.25; G.borer *= 0.55; G.insProt = 7; G.cost.pestisida += COSTS.insek; return 'Insektisida disemprot. Perlindungan 7 hari.'; },
+  fungi(){ G.blight *= 0.5; if (G.hst <= 40) G.bulai *= 0.8; G.fungProt = 10; G.cost.pestisida += COSTS.fungi; return 'Fungisida disemprot. Perlindungan 10 hari.'; },
+  tikus(){ G.rat *= 0.3; G.ratProt = 10; G.cost.pestisida += COSTS.tikus; return 'Gropyokan dan umpan rodentisida dipasang. Populasi tikus turun, perlindungan 10 hari.'; },
+  rogue(){ if (G.hst > 40) return 'Sudah lewat 40 HST. Mencabut tanaman bulai tidak banyak membantu.'; G.bulai *= 0.5; G.cost.pestisida += COSTS.rogue; return 'Tanaman bulai dicabut dan dimusnahkan.'; }
+};
+
+function render(){
+  renderScene(); renderStatus(); renderLog(); renderFert(); renderTabs();
+  $('#harvest').hidden = !(G.hst >= 101) || G.done;
+  $('#next1').disabled = $('#next7').disabled = G.done;
+}
+function showResult(){
+  const R = G.result;
+  $('#game').hidden = true; $('#bar').hidden = true; $('#result').hidden = false;
+  const grade = R.Y >= 10 ? 'Sangat baik' : R.Y >= 8.5 ? 'Baik' : R.Y >= 7 ? 'Cukup' : R.Y >= 5 ? 'Rendah' : 'Gagal panen';
+  const names = { air:'Air (kering atau tergenang)', hara:'Kekurangan atau kelebihan hara', gulma:'Persaingan gulma', hama:'Hama (ulat grayak, penggerek, tikus)', penyakit:'Penyakit (bulai, hawar daun)', suhu:'Panas dan cahaya', rebah:'Tanaman rebah' };
+  const advice = { air:'Pantau air tanah dan prakiraan hujan, lalu airi sebelum dan saat silking.', hara:'Bagi N menjadi dua atau tiga kali tebar, terutama sekitar 14 sampai 21 HST dan 35 sampai 42 HST.', gulma:'Siangi sebelum 35 sampai 40 HST, saat gulma masih mudah dikendalikan.', hama:'Cek lapang berkala. Kendalikan ulat, penggerek, dan tikus (gropyokan, umpan, bersihkan gulma) saat mendekati ambang, bukan setelah melewatinya.', penyakit:'Gunakan benih berperlakuan metalaksil dan fungisida preventif saat cuaca lembap.', suhu:'Tidak bisa dikendalikan, tetapi waktu tanam bisa dipilih agar silking tidak bertepatan dengan panas.', rebah:'Hindari N berlebih dan kendalikan penggerek batang.' };
+  const sh = Object.entries(R.share).sort((a,b)=>b[1]-a[1]);
+  const top = sh[0], mx = Math.max(0.01, top[1]);
+  let best = 0; try { best = +localStorage.getItem('petak-jagung-best') || 0; if (R.profit > best) { localStorage.setItem('petak-jagung-best', String(Math.round(R.profit))); } } catch(e) {}
+  const c = G.cost;
+  $('#result').innerHTML =
+    '<section class="card"><p class="muted" style="margin:0">Panen pada '+G.hst+' HST · '+grade+'</p><div class="big mono">'+num(R.Y,1)+' <span style="font-size:.4em">t/ha</span></div><p style="margin:6px 0 0">Potensi hibrida di petak ini '+num(YMAX,1)+' t/ha. Kehilangan '+num(YMAX-R.Y,1)+' t/ha.'+(R.profit>best&&best>0?' Laba tertinggi di perangkat ini.':'')+'</p></section>'+
+    '<section class="card"><h2>Laba bersih</h2><table class="tbl" style="margin-top:8px"><tr><td>Penjualan ('+num(R.Y*1000,0)+' kg x '+rp(R.price)+'/kg'+(R.early?', sudah dipotong kadar air 3%':'')+')</td><td>'+rp(R.revenue)+'</td></tr>'+
+    '<tr><td>Benih, olah tanah, tanam</td><td>'+rp(-c.tetap)+'</td></tr><tr><td>Pupuk</td><td>'+rp(-c.pupuk)+'</td></tr><tr><td>Irigasi</td><td>'+rp(-c.air)+'</td></tr><tr><td>Penyiangan</td><td>'+rp(-c.gulma)+'</td></tr><tr><td>Pestisida dan roguing</td><td>'+rp(-c.pestisida)+'</td></tr>'+
+    '<tr class="t"><td>Laba</td><td class="'+(R.profit>=0?'up':'dn')+'">'+rp(R.profit)+'</td></tr></table></section>'+
+    '<section class="card"><h2>Ke mana hasilnya hilang</h2>'+sh.map(([k,v]) => row(names[k], v/mx*100, 'var(--warn)', num(v,2)+' t/ha')).join('')+
+    '<div class="hint" style="margin-top:12px"><b>Terbesar: '+names[top[0]]+'.</b> '+advice[top[0]]+'</div></section>'+
+    '<div class="btns"><button class="btn primary" id="again">Main lagi</button><button class="btn" id="replay">Ulang dengan cuaca yang sama</button></div>'+
+    '<p class="foot">Harga dan respons hara adalah contoh untuk belajar, bukan rekomendasi dosis lapangan.</p>';
+  window.scrollTo(0,0);
+}
+
+function startGame(opts){
+  lastOpts = opts; G = newState(opts);
+  $('#setup').hidden = true; $('#result').hidden = true; $('#game').hidden = false; $('#bar').hidden = false;
+  fert = { prod:'urea', dose:150 };
+  document.querySelectorAll('#prod button').forEach(b => b.setAttribute('aria-pressed', b.dataset.p === 'urea'));
+  $('#dose').value = 150;
+  render(); window.scrollTo(0,0);
+}
+function advance(n){
+  for (let i = 0; i < n && !G.done; i++) { const al = stepDay(G); if (al.length) break; }
+  render();
+  if (G.done) showResult();
+}
+
+document.addEventListener('click', e => {
+  const t = e.target;
+  if (t.id === 'startBtn') {
+    const season = document.querySelector('input[name=season]:checked').value, soil = document.querySelector('input[name=soil]:checked').value;
+    startGame({ season, soil, seedTreat: $('#seedTreat').checked });
+  } else if (t.id === 'next1') advance(1);
+  else if (t.id === 'next7') advance(7);
+  else if (t.id === 'harvest') { finish(G, 1); render(); showResult(); }
+  else if (t.id === 'again') { $('#result').hidden = true; $('#setup').hidden = false; window.scrollTo(0,0); }
+  else if (t.id === 'replay') startGame(Object.assign({}, lastOpts, { seed: G.seed }));
+  else if (t.id === 'doFert') {
+    const g = fertGain(fert.prod, fert.dose); G.N += g.N; G.P += g.P; G.K += g.K; G.cost.pupuk += fertCost(fert.prod, fert.dose);
+    G.log.unshift({ d:G.hst, kind:'act', txt:FERT[fert.prod].n + ' ' + fert.dose + ' kg/ha ditebar.' }); render();
+  } else if (t.closest('[data-act]')) {
+    const id = t.closest('[data-act]').dataset.act; const msg = ACT[id](); G.log.unshift({ d:G.hst, kind:'act', txt:msg }); render();
+  } else if (t.closest('#prod button')) {
+    fert.prod = t.closest('#prod button').dataset.p; $('#dose').value = FERT[fert.prod].def;
+    document.querySelectorAll('#prod button').forEach(b => b.setAttribute('aria-pressed', b.dataset.p === fert.prod)); renderFert();
+  } else if (t.closest('.tab')) {
+    tab = t.closest('.tab').dataset.tab;
+    document.querySelectorAll('.tab').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === tab));
+    ['pupuk','air','lindung'].forEach(k => { $('#tab-'+k).hidden = k !== tab; });
+  }
+});
+document.addEventListener('input', e => { if (e.target.id === 'dose' && G) renderFert(); });
+document.addEventListener('change', e => { if (e.target.id === 'hints') { showHint = e.target.checked; renderScene(); } });
+</script>
+</body>
+</html>
