@@ -13,6 +13,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@500;600&family=Public+Sans:wght@400;500;600&display=swap">
 <style>
+html{color-scheme:light}
+:root{padding-top:env(safe-area-inset-top,0px)}
+body{margin:0}
+[hidden]{display:none!important}
 /* Layout: satu kolom ala HP. Kiri-kanan: HUD, lapangan 3x2 petak jagung, lembar pilihan bahan aktif dari bawah. */
 :root{
   --bg:#eef2ec; --surface:#ffffff; --surface2:#e5ece2; --ink:#14231a; --muted:#52645a; --line:#cdd8ca;
@@ -131,6 +135,8 @@ button:focus-visible,input:focus-visible{outline:3px solid #2b79b8;outline-offse
 .chip small{color:var(--muted)}
 .warnp{color:var(--bad);font-size:13px}
 </style>
+</head>
+<body>
 
 <div class="wrap">
   <header class="top">
@@ -223,9 +229,17 @@ const ACT = {
   lambda:{n:'Lambda-sihalotrin',g:'Insektisida',moa:'Piretroid (IRAC 3A)'},
   kcl:{n:'Pupuk kalium (KCl)',g:'Pupuk',moa:'Hara K yang memperkuat batang'},
   urea:{n:'Pupuk urea',g:'Pupuk',moa:'Hara N, berlebih membuat jaringan lunak'},
-  sanitasi:{n:'Sanitasi: buang dan musnahkan sumber infeksi',g:'Tindakan budidaya',moa:'Mengurangi sumber inokulum'}
+  sanitasi:{n:'Sanitasi: buang dan musnahkan sumber infeksi',g:'Tindakan budidaya',moa:'Mengurangi sumber inokulum'},
+  panen:{n:'Panen tepat waktu dan keringkan cepat',g:'Tindakan budidaya',moa:'Menekan perkembangan cendawan dan mikotoksin'}
 };
 const INSEKT_BAD = ['metalaksil','propikonazol','mankozeb','atrazin','glifosat','brodifakum','bromadiolon','nikosulfuron','mesotrion','azoksistrobin'];
+const EAR_TRAP = {
+  mankozeb:'Mankozeb adalah fungisida kontak yang bekerja di permukaan. Cendawan busuk tongkol masuk lewat rambut jagung dan luka, lalu tumbuh di dalam tongkol di bawah kelobot, jadi semprotan kontak hampir tidak menjangkaunya.',
+  azoksistrobin:'Fungisida daun tidak menjadi andalan untuk busuk tongkol. Cendawan masuk lewat rambut jagung dan luka, lalu tumbuh di dalam tongkol di bawah kelobot.',
+  propikonazol:'Fungisida tidak menjadi andalan untuk busuk tongkol. Cendawan masuk lewat rambut jagung dan luka serangga, dan hasil semprotan sulit dijamin.',
+  validamisin:'Validamisin efektif untuk penyakit pelepah, tetapi tidak menjadi andalan untuk cendawan di dalam tongkol. Tindakan budidaya lebih menentukan.',
+  metalaksil:'Metalaksil khusus cendawan semu. Fusarium adalah cendawan sejati, dan fungisida pada umumnya bukan andalan untuk busuk tongkol.'
+};
 const PESTS = {
   faw:{n:'Ulat grayak',lat:'Spodoptera frugiperda',pos:'mid',
     sym:'Larva menggerek pucuk dan daun muda. Kotoran seperti serbuk gergaji menumpuk di pelepah.',
@@ -267,11 +281,11 @@ const PESTS = {
     sym:'Lubang di tanah, tongkol digigit, jejak di sela barisan.',
     ok:['brodifakum','bromadiolon','difenakum','flokumafen','difetialon','kumatetralil','warfarin','klorofasinon','difasinon','sengfosfida','bromethalin','kolekalsiferol'],bad:['emamektin','klorantraniliprol','spinetoram','imidakloprid','tiametoksam','metalaksil','azoksistrobin','propikonazol','mankozeb','atrazin','glifosat','nikosulfuron','mesotrion'],trap:{},
     tip:'Pasang umpan di jalur tikus dan ganti kelompok bahan aktif bila umpan ditolak atau tikus kebal. Padukan dengan gropyokan, sanitasi gulma, dan predator alami seperti burung hantu. Waspadai keracunan sekunder pada predator, ternak, dan anak-anak.'},
-  stalk:{n:'Busuk batang bakteri',lat:'Dickeya zeae (Erwinia chrysanthemi pv. zeae)',pos:'low',
-    sym:'Pangkal batang atau ruas bawah membusuk basah dan berair, berbau menyengat, jaringan melunak dan mudah patah. Tanaman layu mendadak dan rebah, terutama saat lembap dan tergenang.',
-    ok:['tembaga','sanitasi'],bad:['urea','azoksistrobin','propikonazol','metalaksil','emamektin','klorantraniliprol','spinetoram','imidakloprid','tiametoksam','atrazin','glifosat','nikosulfuron','mesotrion','brodifakum','bromadiolon'],
-    trap:{urea:'Nitrogen berlebih dan genangan membuat jaringan lunak, sehingga bakteri lebih mudah berkembang.',azoksistrobin:'Azoksistrobin adalah fungisida dan tidak bekerja pada bakteri. Tembaga justru memiliki aktivitas bakterisida.',propikonazol:'Propikonazol adalah fungisida dan tidak bekerja pada bakteri. Tembaga justru memiliki aktivitas bakterisida.'},
-    tip:'Perbaiki drainase, hindari genangan dan luka pada batang, jaga N tidak berlebih, serta cabut dan musnahkan tanaman terserang. Tembaga oksiklorida bekerja sebagai protektan kontak di pangkal batang, bukan penyembuh.'},
+  stalk:{n:'Busuk batang',lat:'Fusarium spp. dan Stenocarpella maydis',pos:'low',
+    sym:'Pangkal batang melunak dan menghitam, mudah rebah menjelang masak, empulur hancur berwarna merah muda atau cokelat.',
+    ok:['kcl','tembaga'],bad:['urea','azoksistrobin','metalaksil','emamektin','klorantraniliprol','spinetoram','imidakloprid','tiametoksam','atrazin','glifosat','nikosulfuron','mesotrion','brodifakum','bromadiolon'],
+    trap:{urea:'Urea berlebih membuat jaringan lunak dan memperparah busuk batang. Kalium justru memperkuat batang.',azoksistrobin:'Fungisida daun tidak menjangkau empulur batang yang sudah membusuk. Pencegahan lewat keseimbangan hara jauh lebih efektif.'},
+    tip:'Tidak ada fungisida yang menyembuhkan batang yang sudah membusuk. Tembaga oksiklorida bekerja sebagai protektan kontak, paling berguna di pangkal batang saat gejala awal atau bila ada komponen bakteri. Cegah dengan keseimbangan N dan K, populasi tidak terlalu rapat, varietas toleran, dan hindari cekaman air.'},
   sheath:{n:'Busuk pelepah',lat:'Rhizoctonia solani f. sp. sasakii',pos:'mid',
     sym:'Bercak berpita cokelat tidak beraturan di pelepah dan batang, bisa menjalar ke tongkol, sklerotia kecil terbentuk.',
     ok:['validamisin','propikonazol','azoksistrobin'],bad:['metalaksil','emamektin','klorantraniliprol','spinetoram','imidakloprid','tiametoksam','atrazin','glifosat','brodifakum','bromadiolon','nikosulfuron','mesotrion'],
@@ -289,7 +303,17 @@ const PESTS = {
     sym:'Puru (gall) membengkak keperakan di tongkol, batang, atau daun. Isinya berubah menjadi massa spora hitam yang pecah dan tersebar.',
     ok:['sanitasi'],bad:['azoksistrobin','propikonazol','mankozeb','metalaksil','validamisin','urea','kcl','emamektin','imidakloprid','atrazin','glifosat','brodifakum'],
     trap:{urea:'Nitrogen berlebih justru meningkatkan kejadian gosong bengkak.',azoksistrobin:'Fungisida tidak menjadi andalan. Infeksi masuk lewat luka dan jaringan muda, lalu puru terbentuk di dalam tanaman.'},
-    tip:'Buang puru sebelum pecah dan musnahkan di luar petak. Hindari luka pada tanaman, jaga N tidak berlebih, dan pilih varietas yang lebih tahan.'}
+    tip:'Buang puru sebelum pecah dan musnahkan di luar petak. Hindari luka pada tanaman, jaga N tidak berlebih, dan pilih varietas yang lebih tahan.'},
+  fusear:{n:'Busuk tongkol Fusarium',lat:'Fusarium verticillioides',pos:'mid',
+    sym:'Miselium putih sampai merah muda tumbuh acak di biji, sering di sekitar biji yang luka. Biji bisa bergaris seperti bintang.',
+    ok:['klorantraniliprol','panen'],bad:['propikonazol','azoksistrobin','mankozeb','metalaksil','validamisin','urea','imidakloprid','tiametoksam','atrazin','glifosat','brodifakum','nikosulfuron'],
+    trap:Object.assign({}, EAR_TRAP, {imidakloprid:'Imidakloprid menyasar serangga pengisap. Luka tongkol biasanya berasal dari penggerek, jadi pengendalian penggerek lebih menolong.'}),
+    tip:'Kendalikan penggerek agar luka tidak terbuka, panen tepat waktu, dan keringkan cepat. Fusarium dapat menghasilkan mikotoksin (fumonisin).'},
+  gibear:{n:'Busuk tongkol Gibberella',lat:'Gibberella zeae (Fusarium graminearum)',pos:'mid',
+    sym:'Miselium merah muda sampai merah dimulai dari ujung tongkol, kelobot menempel pada tongkol. Sering muncul saat cuaca sejuk dan basah menjelang silking.',
+    ok:['sanitasi','panen'],bad:['propikonazol','azoksistrobin','mankozeb','metalaksil','validamisin','urea','klorantraniliprol','imidakloprid','atrazin','glifosat','brodifakum','emamektin'],
+    trap:Object.assign({}, EAR_TRAP, {klorantraniliprol:'Pengendalian penggerek membantu mengurangi luka, tetapi Gibberella bertahan di sisa tanaman dan masuk lewat rambut jagung. Sanitasi dan panen tepat waktu lebih menentukan.'}),
+    tip:'Musnahkan sisa tanaman sakit, rotasi, pilih hibrida yang lebih toleran, panen tepat waktu, dan keringkan cepat. Cendawan ini dapat menghasilkan mikotoksin (DON dan zearalenon).'}
 };
 /*DATA_END*/
 
@@ -307,7 +331,9 @@ const ICON = {
   sheath:'<svg class="i" viewBox="0 0 64 64"><rect x="18" y="4" width="28" height="56" rx="8" fill="#9fcb68"/><g fill="#9a6b3e" stroke="#6b4527" stroke-width="1.5"><path d="M18 18Q32 12 46 20L46 28Q32 22 18 28Z"/><path d="M18 36Q32 30 46 38L46 46Q32 40 18 46Z"/></g><g fill="#3a2a1a"><circle cx="26" cy="23" r="1.4"/><circle cx="38" cy="25" r="1.4"/><circle cx="30" cy="41" r="1.4"/><circle cx="40" cy="43" r="1.4"/></g></svg>',
   bug:'<svg class="i" viewBox="0 0 64 64"><ellipse cx="34" cy="34" rx="6" ry="20" fill="#9a8f3c" transform="rotate(35 34 34)"/><ellipse cx="34" cy="34" rx="3.5" ry="17" fill="#b8ad57" transform="rotate(35 34 34)"/><circle cx="50" cy="19" r="4.2" fill="#6b6228"/><path d="M52 16l8-8M54 19l8-3" stroke="#4a4420" stroke-width="1.4" fill="none" stroke-linecap="round"/><path d="M26 36l-14 4M30 44l-10 12M38 26l12 10M42 36l10 12" stroke="#4a4420" stroke-width="1.6" stroke-linecap="round"/></svg>',
   mealy:'<svg class="i" viewBox="0 0 64 64"><path d="M8 54Q30 12 58 20" stroke="#6aa84f" stroke-width="5" fill="none" stroke-linecap="round"/><g fill="#f4f1e8" stroke="#cfc8b4" stroke-width="1"><ellipse cx="26" cy="36" rx="10" ry="6.5" transform="rotate(-30 26 36)"/><ellipse cx="42" cy="26" rx="8" ry="5.5" transform="rotate(-20 42 26)"/></g><g stroke="#cfc8b4" stroke-width="1.2" stroke-linecap="round"><path d="M17 32l-5-3M18 40l-6 2M22 44l-3 5M34 42l2 5M36 24l-3-5M45 20l1-5M50 30l5 2"/></g></svg>',
-  smut:'<svg class="i" viewBox="0 0 64 64"><ellipse cx="32" cy="34" rx="11" ry="26" fill="#a9cf6e"/><path d="M32 8Q22 30 32 60Q42 30 32 8Z" fill="#8bb857" opacity=".6"/><g stroke="#8d8a7a" stroke-width="1.5"><circle cx="25" cy="29" r="9" fill="#dedbcd"/><circle cx="38" cy="41" r="8.5" fill="#3b3a38"/><circle cx="29" cy="49" r="5.5" fill="#dedbcd"/></g><g fill="#2a2622"><circle cx="23" cy="27" r="1.3"/><circle cx="28" cy="32" r="1.2"/><circle cx="30" cy="48" r="1"/></g><g fill="#c9c6b8"><circle cx="36" cy="39" r="1.2"/><circle cx="40" cy="44" r="1.2"/></g></svg>'
+  smut:'<svg class="i" viewBox="0 0 64 64"><ellipse cx="32" cy="34" rx="11" ry="26" fill="#a9cf6e"/><path d="M32 8Q22 30 32 60Q42 30 32 8Z" fill="#8bb857" opacity=".6"/><g stroke="#8d8a7a" stroke-width="1.5"><circle cx="25" cy="29" r="9" fill="#dedbcd"/><circle cx="38" cy="41" r="8.5" fill="#3b3a38"/><circle cx="29" cy="49" r="5.5" fill="#dedbcd"/></g><g fill="#2a2622"><circle cx="23" cy="27" r="1.3"/><circle cx="28" cy="32" r="1.2"/><circle cx="30" cy="48" r="1"/></g><g fill="#c9c6b8"><circle cx="36" cy="39" r="1.2"/><circle cx="40" cy="44" r="1.2"/></g></svg>',
+  fusear:'<svg class="i" viewBox="0 0 64 64"><path d="M32 6Q16 18 18 44Q22 58 32 60Q42 58 46 44Q48 18 32 6Z" fill="#e0b92e"/><g stroke="#b88f1a" stroke-width="1" fill="none"><path d="M22 22h20M20 30h24M20 38h24M22 46h20M32 10v48"/></g><g fill="#f7f1f1" stroke="#d9a8b4" stroke-width="1.2"><ellipse cx="26" cy="28" rx="6" ry="4"/><ellipse cx="38" cy="38" rx="6.5" ry="4.5"/><ellipse cx="29" cy="49" rx="5" ry="3.5"/></g><g fill="#e8b7c4" opacity=".8"><circle cx="38" cy="38" r="2"/><circle cx="26" cy="28" r="1.6"/></g></svg>',
+  gibear:'<svg class="i" viewBox="0 0 64 64"><path d="M32 6Q16 18 18 44Q22 58 32 60Q42 58 46 44Q48 18 32 6Z" fill="#e0b92e"/><g stroke="#b88f1a" stroke-width="1" fill="none"><path d="M20 40h24M22 48h20M32 30v28"/></g><path d="M32 6Q16 18 19 34Q32 28 45 34Q48 18 32 6Z" fill="#c2415a"/><path d="M20 34Q32 27 44 34Q40 41 32 38Q24 41 20 34Z" fill="#ec9bb0"/><path d="M17 38Q11 52 23 61M47 38Q53 52 41 61" stroke="#6fae4a" stroke-width="5" fill="none" stroke-linecap="round"/></svg>'
 };
 const PLANT = '<svg class="plant" viewBox="0 0 100 140" aria-hidden="true"><rect x="0" y="122" width="100" height="18" fill="var(--soil)"/><path d="M50 126V30" stroke="var(--stem)" stroke-width="5" stroke-linecap="round"/><g fill="var(--pc)"><path d="M50 108Q18 100 6 114Q30 108 50 114Z"/><path d="M50 96Q82 86 96 100Q72 98 50 104Z"/><path d="M50 80Q20 68 8 78Q30 78 50 86Z"/><path d="M50 66Q78 54 92 64Q70 66 50 72Z"/><path d="M50 52Q30 38 18 44Q36 50 50 58Z"/><path d="M50 42Q68 28 80 32Q66 40 50 48Z"/></g><ellipse cx="58" cy="84" rx="5" ry="11" fill="#c9b458" transform="rotate(-18 58 84)"/></svg>';
 
@@ -332,7 +358,7 @@ function renderDict(){
     '<div class="card"><h2>Kamus hama</h2><p class="muted" style="margin:4px 0 0">Gejala dan bahan aktif yang dipakai di game ini. Disederhanakan untuk belajar.</p></div>' +
     Object.keys(PESTS).map(k => { const P = PESTS[k], tr = Object.values(P.trap)[0];
       return '<div class="card dcard"><span class="ic">'+ICON[k]+'</span><div><h3>'+P.n+'</h3><span class="muted" style="font-size:12.5px"><i>'+P.lat+'</i></span><p>'+P.sym+'</p><div class="chips">'+names(k)+'</div><p class="muted">'+P.tip+'</p>'+(tr?'<p class="warnp">Jebakan: '+tr+'</p>':'')+'</div></div>'; }).join('') +
-    '<div class="card"><p class="foot" style="margin:0">Pestisida harus terdaftar dan dipakai sesuai label. Beberapa bahan aktif dibatasi atau tidak dianjurkan di wilayah tertentu. Rotasi kelompok cara kerja (IRAC, FRAC, HRAC) membantu menunda resistensi. Tidak semua bahan aktif rodentisida terdaftar atau tersedia di Indonesia, jadi selalu cek izin edar dan label. Untuk gosong bengkak, fungisida tidak menjadi andalan: varietas toleran, sanitasi, dan menghindari luka pada tanaman lebih menentukan.</p></div>' +
+    '<div class="card"><p class="foot" style="margin:0">Pestisida harus terdaftar dan dipakai sesuai label. Beberapa bahan aktif dibatasi atau tidak dianjurkan di wilayah tertentu. Rotasi kelompok cara kerja (IRAC, FRAC, HRAC) membantu menunda resistensi. Tidak semua bahan aktif rodentisida terdaftar atau tersedia di Indonesia, jadi selalu cek izin edar dan label. Untuk gosong bengkak dan busuk tongkol, fungisida tidak menjadi andalan: varietas toleran, sanitasi, pengendalian penggerek, dan panen tepat waktu lebih menentukan.</p></div>' +
     '<div class="btns"><button class="btn primary" id="dictBack">Kembali</button></div>';
 }
 
