@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Detasseling Rush</title>
+<meta name="description" content="Game ketuk cepat: cabut tassel baris betina sebelum melepas serbuk sari, biarkan baris jantan.">
+<meta property="og:title" content="Detasseling Rush">
+<meta property="og:description" content="Game ketuk cepat: cabut tassel baris betina sebelum melepas serbuk sari, biarkan baris jantan.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%232a7a3b'/%3E%3Cpath d='M32 56V22' stroke='%23fff' stroke-width='5' stroke-linecap='round'/%3E%3Cg stroke='%23f2b705' stroke-width='4' stroke-linecap='round' fill='none'%3E%3Cpath d='M32 22V8M32 18L22 9M32 18L42 9'/%3E%3C/g%3E%3C/svg%3E">
+<style>html{color-scheme:light}:root{padding-top:env(safe-area-inset-top,0px)}body{margin:0}[hidden]{display:none!important}</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@500;600&family=Public+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: satu kolom ala HP. HUD di atas, petak 7 kolom x 6 baris (tiga baris betina, satu baris jantan, tiga betina), hasil di bawah. */
+:root{
+  --bg:#eef2ec; --surface:#ffffff; --surface2:#e5ece2; --ink:#14231a; --muted:#52645a; --line:#cdd8ca;
+  --leaf:#2a7a3b; --leaf-ink:#ffffff; --good:#2f9e4f; --warn:#d9822b; --bad:#c23b2a; --track:#d9e3d6;
+  --sky1:#bfe3f5; --sky2:#e3f2e4; --soil:#6b4a2f; --stem:#3d7a2e; --leafF:#5aa63f; --leafM:#2f7f6a;
+  --tas1:#8dbb55; --tas2:#cdb865; --pol:#f2b705; --mtag:#d9822b;
+  --font-display:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --font-body:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font-mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1511; --surface:#16211a; --surface2:#1d2b22; --ink:#e4efe6; --muted:#9bb0a1; --line:#2b3b30;
+    --leaf:#4fbf68; --leaf-ink:#06210f; --good:#58c277; --warn:#e8993f; --bad:#ec6a58; --track:#25352b;
+    --sky1:#33506a; --sky2:#27402f; --soil:#4a3322; --stem:#4a9a3a; --leafF:#4f9a3c; --leafM:#2f8f78;
+    --tas1:#8dbb55; --tas2:#d6c26e; --pol:#f5c01c; --mtag:#e8993f; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1511; --surface:#16211a; --surface2:#1d2b22; --ink:#e4efe6; --muted:#9bb0a1; --line:#2b3b30;
+  --leaf:#4fbf68; --leaf-ink:#06210f; --good:#58c277; --warn:#e8993f; --bad:#ec6a58; --track:#25352b;
+  --sky1:#33506a; --sky2:#27402f; --soil:#4a3322; --stem:#4a9a3a; --leafF:#4f9a3c; --leafM:#2f8f78;
+  --tas1:#8dbb55; --tas2:#d6c26e; --pol:#f5c01c; --mtag:#e8993f; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.5}
+.wrap{max-width:560px;margin:0 auto;padding-block:16px 24px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--font-display);margin:0;text-wrap:balance;line-height:1.15}
+h1{font-size:clamp(26px,7vw,34px);font-weight:800;letter-spacing:-.01em}
+h2{font-size:19px;font-weight:700}
+.muted{color:var(--muted)}
+.top{margin-bottom:12px}
+.top p{margin:2px 0 0;color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0}
+.stack{display:flex;flex-direction:column;gap:12px}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible{outline:3px solid #2b79b8;outline-offset:2px}
+.btn{border:1px solid var(--line);background:var(--surface2);border-radius:8px;padding:9px 14px;font-weight:600;min-height:44px}
+.btn:hover{border-color:var(--leaf)}
+.btn.primary{background:var(--leaf);color:var(--leaf-ink);border-color:var(--leaf)}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.btns .btn{flex:1 1 140px}
+#durBtns .btn{flex:1 1 88px}
+.how{margin:10px 0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
+.foot{color:var(--muted);font-size:12.5px;margin:10px 0 0}
+.hl{background:var(--surface2);border-radius:8px;padding:9px 12px;font-size:13.5px}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+/* HUD */
+.hud{display:grid;grid-template-columns:repeat(3,1fr);gap:8px 10px}
+.m small{display:block;color:var(--muted);font-size:12px}
+.m b{font-family:var(--font-mono);font-size:22px;font-weight:600;font-variant-numeric:tabular-nums}
+.hp{grid-column:1/-1}
+.hp small{color:var(--muted);font-size:12px}
+.trk{height:10px;border-radius:5px;background:var(--track);overflow:hidden;margin-top:3px}
+.trk span{display:block;height:100%;border-radius:5px;background:var(--good);transition:width .2s,background .2s}
+/* petak */
+.heads{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin-top:12px}
+.heads span{text-align:center;font-size:11px;font-weight:600;color:var(--muted);border-radius:6px;padding:1px 0;background:var(--surface2)}
+.heads span.j{background:var(--mtag);color:#fff}
+.field{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin-top:4px}
+.cell{position:relative;aspect-ratio:5/7;border-radius:8px;overflow:hidden;border:1px solid var(--line);background:linear-gradient(var(--sky1),var(--sky2));padding:0;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.cell svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.cell.hot{box-shadow:inset 0 0 0 3px var(--bad)}
+.cell.bad{animation:bad .35s}
+@keyframes bad{0%,100%{box-shadow:none}30%{box-shadow:inset 0 0 0 4px var(--bad)}}
+.pol circle{animation:drift 1.1s ease-in-out infinite}
+.pol circle:nth-child(2n){animation-delay:.35s}
+.pol circle:nth-child(3n){animation-delay:.7s}
+@keyframes drift{0%,100%{transform:translate(0,0);opacity:.95}50%{transform:translate(2px,-3px);opacity:.55}}
+.fl{position:absolute;left:50%;top:26%;transform:translateX(-50%);font-family:var(--font-mono);font-weight:600;font-size:12px;white-space:nowrap;pointer-events:none;padding:1px 5px;border-radius:999px;background:var(--surface);animation:rise .75s ease-out forwards;z-index:2}
+.fl.g{color:var(--good)} .fl.r{color:var(--bad)} .fl.w{color:var(--warn)}
+@keyframes rise{from{transform:translate(-50%,6px);opacity:1}to{transform:translate(-50%,-18px);opacity:0}}
+@media (prefers-reduced-motion:reduce){.pol circle,.cell.bad,.fl{animation:none}.fl{opacity:.9}}
+/* hasil */
+.big{font-family:var(--font-display);font-weight:800;font-size:clamp(40px,12vw,58px);line-height:1}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.rv{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.rv div{font-size:14px;border-top:1px solid var(--line);padding-top:8px}
+.legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:10px}
+.legend div{display:flex;gap:8px;align-items:center;font-size:13px}
+.legend svg{flex:none;width:34px;height:48px;background:linear-gradient(var(--sky1),var(--sky2));border-radius:6px;border:1px solid var(--line)}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Detasseling Rush</h1>
+    <p>Cabut tassel baris betina sebelum melepas serbuk sari</p>
+  </header>
+
+  <section id="home" class="card">
+    <h2>Siapkan regu detasseling</h2>
+    <ol class="how">
+      <li>Ketuk tassel di tanaman <b>betina</b> secepat mungkin, sebelum melepas serbuk sari.</li>
+      <li>Jangan sentuh baris <b>jantan</b> (label oranye). Itu sumber serbuk sari.</li>
+      <li>Jangan mengetuk tanaman yang belum bertassel. Daun ikut terbuang.</li>
+    </ol>
+    <div class="legend" id="legend"></div>
+    <p class="muted" style="margin:12px 0 8px;font-weight:600">Pilih waktu bermain</p>
+    <div class="btns" id="durBtns">
+      <button class="btn primary" data-dur="15">15 detik</button>
+      <button class="btn primary" data-dur="30">30 detik</button>
+      <button class="btn primary" data-dur="60">60 detik</button>
+    </div>
+    <p class="foot" id="bestLine"></p>
+    <p class="hl" style="margin-top:12px">Pada produksi benih hibrida, malai (tassel) baris betina dibuang sebelum melepas serbuk sari, supaya bunga betina hanya dibuahi serbuk sari dari baris jantan. Tassel yang lolos menyerbuki tanaman betina sendiri, sehingga benihnya tidak murni hibrida.</p>
+    <p class="foot">Game belajar yang disederhanakan. Waktu, pola baris jantan dan betina, serta kriteria lapang berbeda untuk setiap produk, jadi ikuti petunjuk produksi yang berlaku.</p>
+  </section>
+
+  <main id="game" hidden>
+    <div class="card">
+      <div class="hud">
+        <div class="m"><small>Waktu</small><b id="hTime">30</b></div>
+        <div class="m"><small>Skor</small><b id="hScore">0</b></div>
+        <div class="m"><small>Kombo</small><b id="hCombo">0</b></div>
+        <div class="hp"><small>Mutu benih</small><div class="trk"><span id="hHp" style="width:100%"></span></div></div>
+      </div>
+    </div>
+    <div class="heads" id="heads"></div>
+    <div class="field" id="field"></div>
+    <p class="foot" style="text-align:center">Cabut tassel betina sebelum kuning dan berserbuk. Biarkan baris jantan.</p>
+  </main>
+
+  <section id="result" class="stack" hidden></section>
+</div>
+
+<script>
+const COLS = 7, ROWS = 6, MALE_COL = 3;
+const $ = s => document.querySelector(s);
+const pick = a => a[Math.floor(Math.random()*a.length)];
+let S = null, rafId = 0;
+
+/* tanaman: sex F/M, st 0 tanpa tassel, 1 muncul, 2 siap cabut, 3 melepas serbuk sari */
+function plantSVG(sex, st, cut){
+  const leaf = sex === 'M' ? 'var(--leafM)' : 'var(--leafF)';
+  let g = '<rect x="0" y="62" width="50" height="10" fill="var(--soil)"/><rect x="23" y="' + (cut ? 22 : 16) + '" width="4" height="' + (cut ? 42 : 48) + '" rx="2" fill="var(--stem)"/>' +
+    '<g fill="' + leaf + '"><path d="M25 56Q8 54 2 40Q16 46 25 50Z"/><path d="M25 48Q42 46 48 32Q34 38 25 42Z"/><path d="M25 40Q10 36 5 24Q17 30 25 34Z"/><path d="M25 32Q40 28 45 18Q34 22 25 26Z"/></g>';
+  if (sex === 'M') g += '<rect x="14" y="63" width="22" height="9" rx="3" fill="var(--mtag)"/><text x="25" y="70.5" text-anchor="middle" font-size="8" font-weight="700" fill="#fff" font-family="sans-serif">J</text>';
+  if (cut) g += '<path d="M21 22l8-4M21 18l8 4" stroke="var(--bad)" stroke-width="2" stroke-linecap="round"/>';
+  else if (st === 0) g += '<path d="M25 16L25 11" stroke="var(--stem)" stroke-width="2.5" stroke-linecap="round"/>';
+  else if (st === 1) g += '<path d="M25 16L25 7" stroke="var(--tas1)" stroke-width="3" stroke-linecap="round"/>';
+  else {
+    const c = st === 2 ? 'var(--tas1)' : 'var(--tas2)';
+    g += '<g stroke="' + c + '" stroke-width="2.2" stroke-linecap="round" fill="none"><path d="M25 16L25 1"/><path d="M25 13L17 6"/><path d="M25 13L33 6"/><path d="M25 8L19 2"/><path d="M25 8L31 2"/></g>';
+    if (st === 3) g += '<g class="pol" fill="var(--pol)"><circle cx="17" cy="9" r="1.7"/><circle cx="33" cy="9" r="1.7"/><circle cx="21" cy="3" r="1.5"/><circle cx="29" cy="3" r="1.5"/><circle cx="25" cy="-1" r="1.5"/><circle cx="12" cy="14" r="1.4"/><circle cx="38" cy="14" r="1.4"/></g>';
+  }
+  return '<svg viewBox="0 0 50 72" aria-hidden="true" overflow="visible">' + g + '</svg>';
+}
+const STN = ['belum bertassel','tassel muncul','tassel siap dicabut','melepas serbuk sari'];
+
+function show(id){ ['home','game','result'].forEach(k => { $('#'+k).hidden = k !== id; }); window.scrollTo(0,0); }
+function bestScore(d){ try { return +localStorage.getItem('detasseling-rush-best-' + d) || 0; } catch(e) { return 0; } }
+function setBest(d, v){ try { localStorage.setItem('detasseling-rush-best-' + d, String(v)); } catch(e) {} }
+function renderBest(){
+  const parts = [15,30,60].map(d => [d, bestScore(d)]).filter(x => x[1]).map(x => x[0] + ' dtk: ' + x[1]);
+  $('#bestLine').textContent = parts.length ? 'Skor terbaik di perangkat ini · ' + parts.join(' · ') : '';
+}
+function renderLegend(){
+  const it = [['F',1,'Tassel muncul'],['F',2,'Siap dicabut'],['F',3,'Berserbuk: terlambat'],['M',2,'Jantan: jangan dicabut']];
+  $('#legend').innerHTML = it.map(x => '<div>' + plantSVG(x[0], x[1]) + '<span>' + x[2] + '</span></div>').join('');
+}
+
+function newGame(dur){
+  S = { dur, rs: 60/dur, t: dur, score: 0, combo: 0, bestCombo: 0, hp: 100, elapsed: 0, spawn: 0.4, over: false, last: performance.now(),
+    stat: { ok: 0, late: 0, male: 0, leaf: 0 }, plants: [] };
+  const f = $('#field'), h = $('#heads'); f.innerHTML = ''; h.innerHTML = '';
+  for (let c = 0; c < COLS; c++) h.insertAdjacentHTML('beforeend', '<span class="' + (c === MALE_COL ? 'j' : '') + '">' + (c === MALE_COL ? 'Jantan' : 'Betina') + '</span>');
+  for (let i = 0; i < ROWS*COLS; i++) {
+    const c = i % COLS, r = Math.floor(i / COLS), sex = c === MALE_COL ? 'M' : 'F';
+    S.plants.push({ sex, st: 0, age: 0, cut: 0, r, c });
+    const b = document.createElement('button'); b.className = 'cell'; b.dataset.i = i; f.appendChild(b); setCell(i);
+  }
+  show('game'); hud();
+  cancelAnimationFrame(rafId); rafId = requestAnimationFrame(loop);
+}
+function setCell(i){
+  const p = S.plants[i], b = $('#field').children[i]; if (!b) return;
+  b.innerHTML = plantSVG(p.sex, p.st, p.cut > 0);
+  b.classList.toggle('hot', p.sex === 'F' && p.st === 3 && !p.cut);
+  b.setAttribute('aria-label', (p.sex === 'F' ? 'Betina' : 'Jantan') + ' baris ' + (p.r+1) + ', ' + (p.cut > 0 ? 'baru dicabut' : STN[p.st]));
+}
+function hud(){
+  $('#hTime').textContent = Math.max(0, Math.ceil(S.t));
+  $('#hScore').textContent = S.score;
+  $('#hCombo').textContent = 'x' + S.combo;
+  const hp = $('#hHp'); hp.style.width = Math.max(0, S.hp) + '%';
+  hp.style.background = S.hp > 55 ? 'var(--good)' : S.hp > 25 ? 'var(--warn)' : 'var(--bad)';
+}
+function float(i, txt, cls){
+  const b = $('#field').children[i]; if (!b) return;
+  const s = document.createElement('span'); s.className = 'fl ' + cls; s.textContent = txt; b.appendChild(s);
+  setTimeout(() => s.remove(), 800);
+}
+function flash(i){ const b = $('#field').children[i]; if (!b) return; b.classList.remove('bad'); void b.offsetWidth; b.classList.add('bad'); }
+
+function loop(now){
+  if (!S || S.over) return;
+  const dt = Math.min(0.1, (now - S.last)/1000); S.last = now;
+  tick(dt);
+  if (!S.over) rafId = requestAnimationFrame(loop);
+}
+function spawnTassel(e){
+  const free = []; let act = 0;
+  S.plants.forEach((p, i) => { if (p.sex === 'F' && p.st >= 1) act++; if (p.st === 0 && !p.cut) free.push(i); });
+  if (!free.length) return;
+  const maxAct = Math.min(12, 4 + Math.floor(e/7));
+  const males = free.filter(i => S.plants[i].sex === 'M'), fem = free.filter(i => S.plants[i].sex === 'F');
+  let i;
+  if (males.length && (Math.random() < 0.16 || !fem.length)) i = pick(males);
+  else if (fem.length && act < maxAct) i = pick(fem);
+  else return;
+  S.plants[i].st = 1; S.plants[i].age = 0; setCell(i);
+}
+function tick(dt){
+  S.t -= dt; S.elapsed += dt; S.spawn -= dt;
+  const e = S.elapsed * S.rs, f = Math.max(0.5, 1 - e*0.007);
+  if (S.spawn <= 0) { spawnTassel(e); S.spawn = Math.max(0.38, 1.1 - e*0.013); }
+  let shed = 0;
+  S.plants.forEach((p, i) => {
+    if (p.cut > 0) { p.cut -= dt; if (p.cut <= 0) { p.cut = 0; p.st = 0; p.age = 0; setCell(i); } return; }
+    if (p.st >= 1) {
+      p.age += dt;
+      if (p.st === 1 && p.age >= 1.6*f) { p.st = 2; p.age = 0; setCell(i); }
+      else if (p.st === 2 && p.age >= 2.6*f) { p.st = 3; p.age = 0; setCell(i); }
+      if (p.st === 3 && p.sex === 'F') shed++;
+    }
+  });
+  S.hp -= shed * 1.4 * dt;
+  hud();
+  if (S.t <= 0 || S.hp <= 0) endGame();
+}
+
+function tap(i){
+  if (!S || S.over) return;
+  const p = S.plants[i]; if (!p || p.cut > 0) return;
+  if (p.st === 0) {
+    S.hp -= 4; S.combo = 0; S.stat.leaf++; float(i, '-4 daun', 'r'); flash(i);
+  } else if (p.sex === 'M') {
+    S.hp -= 12; S.combo = 0; S.stat.male++; float(i, 'Jantan! -12', 'r'); flash(i); p.cut = 0.8; p.st = 0; p.age = 0; setCell(i);
+  } else if (p.st < 3) {
+    const pts = 10 + 5*Math.min(S.combo, 8);
+    S.score += pts; S.combo++; S.bestCombo = Math.max(S.bestCombo, S.combo); S.stat.ok++;
+    float(i, '+' + pts, 'g'); p.cut = 0.8; p.st = 0; p.age = 0; setCell(i);
+  } else {
+    S.score += 3; S.combo = 0; S.stat.late++; float(i, '+3 terlambat', 'w'); p.cut = 0.8; p.st = 0; p.age = 0; setCell(i);
+  }
+  hud();
+  if (S.hp <= 0) endGame();
+}
+
+function endGame(){
+  if (S.over) return;
+  S.over = true; cancelAnimationFrame(rafId);
+  const lolos = S.plants.filter(p => p.sex === 'F' && p.st === 3 && !p.cut).length;
+  const st = S.stat, total = st.ok + st.late + st.male + st.leaf + lolos, acc = total ? Math.round(100*st.ok/total) : 0;
+  const prev = bestScore(S.dur), isBest = S.score > prev; if (isBest) setBest(S.dur, S.score);
+  const th = { 15: [150, 350, 520], 30: [400, 900, 1250], 60: [800, 1700, 2700] }[S.dur];
+  const rank = S.score >= th[2] ? 'Pakar produksi benih' : S.score >= th[1] ? 'Mandor lapang' : S.score >= th[0] ? 'Regu detasseling' : 'Pemula';
+  const lost = S.hp <= 0, hp = Math.max(0, Math.round(S.hp));
+  const rv = [];
+  if (st.late || lolos) rv.push('<div><b>Tassel terlambat atau lolos (' + (st.late + lolos) + ')</b><br><span class="muted">Tassel yang sudah melepas serbuk sari dapat menyerbuki tanaman betina sendiri, sehingga benih tercampur dan tidak murni hibrida. Cabut sejak tassel muncul, jangan menunggu menguning.</span></div>');
+  if (st.male) rv.push('<div><b>Tassel jantan ikut dicabut (' + st.male + ')</b><br><span class="muted">Baris jantan adalah satu-satunya sumber serbuk sari yang diinginkan. Kehilangannya membuat penyerbukan betina kurang dan hasil benih turun.</span></div>');
+  if (st.leaf) rv.push('<div><b>Mengetuk tanaman tanpa tassel (' + st.leaf + ')</b><br><span class="muted">Mencabut terlalu dini atau salah tanaman membuat daun ikut terbuang. Berkurangnya daun dapat menurunkan hasil.</span></div>');
+  $('#result').innerHTML =
+    '<div class="card"><p class="muted" style="margin:0">' + (lost ? 'Mutu benih jatuh sebelum waktu habis' : 'Waktu habis') + ' · ' + S.dur + ' detik · ' + rank + '</p><div class="big mono">' + S.score + '</div><p style="margin:6px 0 0">' + (isBest ? 'Skor terbaik baru di perangkat ini.' : prev ? 'Skor terbaik: ' + prev : '') + '</p>' +
+    '<div class="stats"><div class="m"><small>Tepat waktu</small><b>' + st.ok + '</b></div><div class="m"><small>Kombo terbaik</small><b>x' + S.bestCombo + '</b></div><div class="m"><small>Mutu benih</small><b>' + hp + '%</b></div></div><p class="muted" style="margin:10px 0 0;font-size:13.5px">Akurasi ' + acc + '%</p></div>' +
+    (rv.length ? '<div class="card"><h2>Perlu diperbaiki</h2><div class="rv">' + rv.join('') + '</div></div>' : '<div class="card"><h2>Bersih</h2><p class="muted" style="margin:4px 0 0">Semua tassel betina dicabut tepat waktu dan baris jantan aman.</p></div>') +
+    '<div class="btns"><button class="btn primary" id="again">Main lagi (' + S.dur + ' detik)</button><button class="btn" id="goHome">Ganti waktu</button></div>' +
+    '<p class="foot">Game belajar yang disederhanakan. Ikuti petunjuk produksi yang berlaku di lapang.</p>';
+  show('result'); renderBest();
+}
+
+document.addEventListener('click', e => {
+  const t = e.target;
+  if (t.closest('[data-dur]')) newGame(+t.closest('[data-dur]').dataset.dur);
+  else if (t.closest('#again')) newGame(S.dur);
+  else if (t.closest('#goHome')) { renderBest(); show('home'); }
+  else if (t.closest('.cell')) tap(+t.closest('.cell').dataset.i);
+});
+renderLegend(); renderBest();
+</script>
+</body>
+  </html>
+  
