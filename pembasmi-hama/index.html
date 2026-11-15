@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pembasmi Hama</title>
+<meta name="description" content="Game ketuk hama dan penyakit jagung, lalu pilih bahan aktif atau penanganan yang tepat sebelum waktunya habis. Untuk belajar.">
+<meta name="theme-color" content="#2a7a3b">
+<meta property="og:title" content="Pembasmi Hama">
+<meta property="og:description" content="Game ketuk hama dan penyakit jagung, lalu pilih bahan aktif atau penanganan yang tepat sebelum waktunya habis. Untuk belajar.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232a7a3b'/%3E%3Cellipse cx='16' cy='18' rx='7' ry='9' fill='%237c6c37'/%3E%3Ccircle cx='16' cy='8' r='5' fill='%235b4a28'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@500;600&family=Public+Sans:wght@400;500;600&display=swap">
+<style>
+html{color-scheme:light}
+:root{padding-top:env(safe-area-inset-top,0px)}
+body{margin:0}
+[hidden]{display:none!important}
+/* Layout: satu kolom ala HP. Kiri-kanan: HUD, lapangan 3x2 petak jagung, lembar pilihan bahan aktif dari bawah. */
+:root{
+  --bg:#eef2ec; --surface:#ffffff; --surface2:#e5ece2; --ink:#14231a; --muted:#52645a; --line:#cdd8ca;
+  --leaf:#2a7a3b; --leaf-ink:#ffffff; --corn:#e0a800;
+  --good:#2f9e4f; --warn:#d9822b; --bad:#c23b2a; --track:#d9e3d6;
+  --sky1:#bfe3f5; --sky2:#e3f2e4; --soil:#6b4a2f; --stem:#3d7a2e;
+  --font-display:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --font-body:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font-mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1511; --surface:#16211a; --surface2:#1d2b22; --ink:#e4efe6; --muted:#9bb0a1; --line:#2b3b30;
+    --leaf:#4fbf68; --leaf-ink:#06210f; --corn:#f0bd2e;
+    --good:#58c277; --warn:#e8993f; --bad:#ec6a58; --track:#25352b;
+    --sky1:#33506a; --sky2:#27402f; --soil:#4a3322; --stem:#4a9a3a; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1511; --surface:#16211a; --surface2:#1d2b22; --ink:#e4efe6; --muted:#9bb0a1; --line:#2b3b30;
+  --leaf:#4fbf68; --leaf-ink:#06210f; --corn:#f0bd2e;
+  --good:#58c277; --warn:#e8993f; --bad:#ec6a58; --track:#25352b;
+  --sky1:#33506a; --sky2:#27402f; --soil:#4a3322; --stem:#4a9a3a; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.5}
+.wrap{max-width:560px;margin:0 auto;padding-block:16px 24px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--font-display);margin:0;text-wrap:balance;line-height:1.15}
+h1{font-size:clamp(26px,7vw,34px);font-weight:800;letter-spacing:-.01em}
+h2{font-size:19px;font-weight:700}
+h3{font-size:15.5px;font-weight:700}
+.muted{color:var(--muted)}
+.top{margin-bottom:12px}
+.top p{margin:2px 0 0;color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0}
+.stack{display:flex;flex-direction:column;gap:12px}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid #2b79b8;outline-offset:2px}
+.btn{border:1px solid var(--line);background:var(--surface2);border-radius:8px;padding:9px 14px;font-weight:600;min-height:44px}
+.btn:hover{border-color:var(--leaf)}
+.btn.primary{background:var(--leaf);color:var(--leaf-ink);border-color:var(--leaf)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.btns .btn{flex:1 1 140px}
+#durBtns .btn{flex:1 1 88px}
+.how{margin:10px 0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
+.chk{display:flex;gap:8px;align-items:center;margin:6px 0 12px}
+.chk input{width:20px;height:20px;accent-color:var(--leaf)}
+.foot{color:var(--muted);font-size:12.5px;margin:10px 0 0}
+.hl{background:var(--surface2);border-radius:8px;padding:8px 10px;font-size:13.5px}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+/* HUD */
+.hud{display:grid;grid-template-columns:repeat(3,1fr);gap:8px 10px}
+.m small{display:block;color:var(--muted);font-size:12px}
+.m b{font-family:var(--font-mono);font-size:22px;font-weight:600;font-variant-numeric:tabular-nums}
+.hp{grid-column:1/-1}
+.hp small{color:var(--muted);font-size:12px}
+.trk{height:10px;border-radius:5px;background:var(--track);overflow:hidden;margin-top:3px}
+.trk span{display:block;height:100%;border-radius:5px;background:var(--good);transition:width .2s,background .2s}
+/* lapangan */
+.field{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px;--pc:#4a9a45}
+.cell{position:relative;aspect-ratio:5/7;border-radius:10px;overflow:hidden;border:1px solid var(--line);background:linear-gradient(var(--sky1),var(--sky2))}
+.cell svg.plant{position:absolute;inset:0;width:100%;height:100%}
+.cell.hit{animation:hit .4s}
+@keyframes hit{0%,100%{box-shadow:none}30%{box-shadow:inset 0 0 0 4px var(--bad)}}
+.slot{position:absolute;left:0;right:0;display:flex;justify-content:center;pointer-events:none}
+.slot.high{top:8%} .slot.mid{top:26%} .slot.low{bottom:5%}
+.pest{pointer-events:auto;border:0;background:transparent;padding:0;display:flex;flex-direction:column;align-items:center;animation:pop .22s ease-out}
+@keyframes pop{from{transform:scale(.5);opacity:0}to{transform:scale(1);opacity:1}}
+.pest .ico{position:relative;width:62px;height:62px;display:grid;place-items:center}
+.pest .ico>svg.i{position:relative;width:40px;height:40px}
+.ring{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+.ring .bg{fill:rgba(255,255,255,.92);stroke:rgba(0,0,0,.12);stroke-width:3}
+.ring .pg{fill:none;stroke:#2f9e4f;stroke-width:3.5;stroke-linecap:round;stroke-dasharray:100}
+.pest.hot .ring .pg{stroke:#c23b2a}
+.pest:not(.hot) .ico{animation:wig 1.6s ease-in-out infinite}
+@keyframes wig{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+@media (prefers-reduced-motion:reduce){.pest,.pest .ico,.cell.hit{animation:none}}
+.lab{font-size:11px;font-weight:600;background:rgba(255,255,255,.94);color:#14231a;border-radius:999px;padding:1px 7px;margin-top:2px;max-width:104px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* lembar jawaban */
+.overlay{position:fixed;inset:0;z-index:20;display:flex;align-items:flex-end;justify-content:center;background:rgba(8,15,10,.55)}
+.sheet{width:100%;max-width:560px;max-height:92%;overflow:auto;background:var(--surface);border-radius:16px 16px 0 0;padding-top:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.shhead{display:flex;gap:12px;align-items:flex-start}
+.shhead .ic{flex:none;width:56px;height:56px;border-radius:12px;background:var(--surface2);display:grid;place-items:center}
+.shhead .ic svg{width:42px;height:42px}
+.shhead>div{flex:1;min-width:0}
+.shhead p{margin:2px 0 0;font-size:13.5px;color:var(--muted)}
+.x{flex:none;width:44px;height:44px;border:0;background:transparent;font-size:26px;line-height:1;border-radius:8px}
+.q{margin:12px 0 8px;font-weight:600}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{display:flex;flex-direction:column;align-items:flex-start;text-align:left;border:1.5px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 12px;min-height:48px;width:100%}
+.opt b{font-size:15px}
+.opt small{color:var(--muted);font-size:12.5px;display:none}
+.opts.done .opt small{display:block}
+.opts.done .opt{opacity:.6;cursor:default}
+.opt.right{border-color:var(--good);background:var(--surface2);opacity:1!important;box-shadow:inset 0 0 0 1px var(--good)}
+.opt.wrong{border-color:var(--bad);opacity:1!important;box-shadow:inset 0 0 0 1px var(--bad)}
+.ctd{display:flex;align-items:center;gap:10px;margin:12px 0 0}
+.ctd .trk{flex:1}
+.ctd b{font-family:var(--font-mono);font-weight:600;font-size:15px;min-width:34px;text-align:right;font-variant-numeric:tabular-nums}
+.ctd.hot b{color:var(--bad)}
+.fb{margin:12px 0;padding:10px 12px;border-radius:10px;background:var(--surface2);font-size:14px}
+.fb b.ok{color:var(--good)} .fb b.no{color:var(--bad)}
+/* hasil dan kamus */
+.big{font-family:var(--font-display);font-weight:800;font-size:clamp(40px,12vw,58px);line-height:1}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.rv{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.rv div{font-size:14px;border-top:1px solid var(--line);padding-top:8px}
+.dcard{display:flex;gap:12px}
+.dcard .ic{flex:none;width:52px;height:52px;border-radius:10px;background:var(--surface2);display:grid;place-items:center}
+.dcard .ic svg{width:38px;height:38px}
+.dcard>div{min-width:0}
+.dcard p{margin:3px 0 0;font-size:13.5px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chip{background:var(--surface2);border:1px solid var(--line);border-radius:999px;padding:2px 9px;font-size:12.5px}
+.chip small{color:var(--muted)}
+.warnp{color:var(--bad);font-size:13px}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <h1>Pembasmi Hama</h1>
+    <p>Kenali hama dan penyakit jagung, lalu pilih bahan aktif yang tepat</p>
+  </header>
+
+  <section id="home" class="card">
+    <h2>Selamatkan petak jagungmu</h2>
+    <ol class="how">
+      <li>Ketuk hama atau penyakit yang muncul di tanaman.</li>
+      <li>Pilih satu dari empat pilihan penanganan atau bahan aktif. Kamu punya 5 detik untuk memilih.</li>
+      <li>Jawaban tepat menambah skor dan kombo. Salah pilih atau terlambat melukai tanaman.</li>
+    </ol>
+    <label class="chk"><input type="checkbox" id="expert"> Mode ahli: nama hama disembunyikan</label>
+    <p class="q" style="margin:4px 0 8px">Pilih waktu bermain</p>
+    <div class="btns" id="durBtns">
+      <button class="btn primary" data-dur="15">15 detik</button>
+      <button class="btn primary" data-dur="30">30 detik</button>
+      <button class="btn primary" data-dur="60">60 detik</button>
+    </div>
+    <div class="btns" style="margin-top:8px"><button class="btn" id="openDict">Kamus hama</button></div>
+    <p class="foot" id="bestLine"></p>
+    <p class="foot">Untuk belajar. Pilihan bahan aktif di sini disederhanakan dan bukan rekomendasi penggunaan. Selalu ikuti label produk, izin edar, dan anjuran setempat.</p>
+  </section>
+
+  <section id="dict" class="stack" hidden></section>
+
+  <main id="game" hidden>
+    <div class="card">
+      <div class="hud">
+        <div class="m"><small>Waktu</small><b id="hTime">60</b></div>
+        <div class="m"><small>Skor</small><b id="hScore">0</b></div>
+        <div class="m"><small>Kombo</small><b id="hCombo">0</b></div>
+        <div class="hp"><small>Kesehatan tanaman</small><div class="trk"><span id="hHp" style="width:100%"></span></div></div>
+      </div>
+    </div>
+    <div class="field" id="field"></div>
+    <p class="foot" style="text-align:center">Ketuk hama di tanaman sebelum lingkarannya habis.</p>
+  </main>
+
+  <section id="result" class="stack" hidden></section>
+</div>
+
+<div id="sheet" class="overlay" hidden role="dialog" aria-modal="true" aria-labelledby="shTitle">
+  <div class="sheet">
+    <div class="shhead">
+      <span class="ic" id="shIco"></span>
+      <div><h2 id="shTitle"></h2><p id="shSym"></p></div>
+      <button class="x" id="shClose" aria-label="Tutup">&times;</button>
+    </div>
+    <p class="q">Penanganan atau bahan aktif mana yang tepat?</p>
+    <div class="ctd" id="shCtd" aria-label="Sisa waktu memilih"><div class="trk"><span id="shBar" style="width:100%"></span></div><b id="shSec">5</b></div>
+    <div class="opts" id="shOpts"></div>
+    <div class="fb" id="shFb" hidden></div>
+    <button class="btn primary" id="shNext" style="width:100%" hidden>Lanjut</button>
+  </div>
+</div>
+
+<script>
+/*DATA_START*/
+const ACT = {
+  emamektin:{n:'Emamektin benzoat',g:'Insektisida',moa:'Aktivator kanal klorida (IRAC 6)'},
+  klorantraniliprol:{n:'Klorantraniliprol',g:'Insektisida',moa:'Diamida, reseptor ryanodin (IRAC 28)'},
+  spinetoram:{n:'Spinetoram',g:'Insektisida',moa:'Spinosin, reseptor nikotinik (IRAC 5)'},
+  imidakloprid:{n:'Imidakloprid',g:'Insektisida',moa:'Neonikotinoid (IRAC 4A)'},
+  tiametoksam:{n:'Tiametoksam',g:'Insektisida',moa:'Neonikotinoid (IRAC 4A)'},
+  metalaksil:{n:'Metalaksil',g:'Fungisida',moa:'Fenilamida, khusus cendawan semu (FRAC 4)'},
+  azoksistrobin:{n:'Azoksistrobin',g:'Fungisida',moa:'Strobilurin, penghambat QoI (FRAC 11)'},
+  propikonazol:{n:'Propikonazol',g:'Fungisida',moa:'Triazol, penghambat DMI (FRAC 3)'},
+  mankozeb:{n:'Mankozeb',g:'Fungisida',moa:'Kontak multi-situs (FRAC M03)'},
+  nikosulfuron:{n:'Nikosulfuron',g:'Herbisida',moa:'Penghambat ALS (kelompok 2)'},
+  atrazin:{n:'Atrazin',g:'Herbisida',moa:'Penghambat fotosistem II (kelompok 5)'},
+  mesotrion:{n:'Mesotrion',g:'Herbisida',moa:'Penghambat HPPD (kelompok 27)'},
+  glifosat:{n:'Glifosat',g:'Herbisida non-selektif',moa:'Penghambat EPSPS (kelompok 9)'},
+  brodifakum:{n:'Brodifakum',g:'Rodentisida',moa:'Antikoagulan generasi kedua'},
+  bromadiolon:{n:'Bromadiolon',g:'Rodentisida',moa:'Antikoagulan generasi kedua'},
+  difenakum:{n:'Difenakum',g:'Rodentisida',moa:'Antikoagulan generasi kedua'},
+  flokumafen:{n:'Flokumafen',g:'Rodentisida',moa:'Antikoagulan generasi kedua'},
+  difetialon:{n:'Difetialon',g:'Rodentisida',moa:'Antikoagulan generasi kedua'},
+  kumatetralil:{n:'Kumatetralil',g:'Rodentisida',moa:'Antikoagulan generasi pertama'},
+  warfarin:{n:'Warfarin',g:'Rodentisida',moa:'Antikoagulan generasi pertama'},
+  klorofasinon:{n:'Klorofasinon',g:'Rodentisida',moa:'Antikoagulan indandion'},
+  difasinon:{n:'Difasinon',g:'Rodentisida',moa:'Antikoagulan indandion'},
+  sengfosfida:{n:'Seng fosfida',g:'Rodentisida',moa:'Melepas gas fosfin di lambung, kerja akut'},
+  bromethalin:{n:'Bromethalin',g:'Rodentisida',moa:'Neurotoksik, mengganggu produksi energi sel'},
+  kolekalsiferol:{n:'Kolekalsiferol',g:'Rodentisida',moa:'Vitamin D3, menyebabkan kalsium darah berlebih'},
+  tembaga:{n:'Tembaga oksiklorida',g:'Fungisida dan bakterisida',moa:'Kontak multi-situs (FRAC M01)'},
+  validamisin:{n:'Validamisin',g:'Fungisida',moa:'Antibiotik, penghambat trehalase (FRAC U18)'},
+  lambda:{n:'Lambda-sihalotrin',g:'Insektisida',moa:'Piretroid (IRAC 3A)'},
+  kcl:{n:'Pupuk kalium (KCl)',g:'Pupuk',moa:'Hara K yang memperkuat batang'},
+  urea:{n:'Pupuk urea',g:'Pupuk',moa:'Hara N, berlebih membuat jaringan lunak'},
+  sanitasi:{n:'Sanitasi: buang dan musnahkan sumber infeksi',g:'Tindakan budidaya',moa:'Mengurangi sumber inokulum'},
+  panen:{n:'Panen tepat waktu dan keringkan cepat',g:'Tindakan budidaya',moa:'Menekan perkembangan cendawan dan mikotoksin'}
+};
+const INSEKT_BAD = ['metalaksil','propikonazol','mankozeb','atrazin','glifosat','brodifakum','bromadiolon','nikosulfuron','mesotrion','azoksistrobin'];
+const PESTS = {
+  faw:{n:'Ulat grayak',lat:'Spodoptera frugiperda',pos:'mid',
+    sym:'Larva menggerek pucuk dan daun muda. Kotoran seperti serbuk gergaji menumpuk di pelepah.',
+    ok:['emamektin','klorantraniliprol','spinetoram'],bad:INSEKT_BAD,trap:{},
+    tip:'Arahkan semprotan ke pucuk tempat larva bersembunyi, dan rotasi kelompok cara kerja untuk menunda resistensi.'},
+  borer:{n:'Penggerek batang',lat:'Ostrinia furnacalis',pos:'mid',
+    sym:'Lubang gerekan di batang, serbuk gerek di ketiak daun, malai mudah patah.',
+    ok:['klorantraniliprol','emamektin'],bad:INSEKT_BAD,trap:{},
+    tip:'Waktu aplikasi menentukan: larva muda yang belum masuk batang jauh lebih mudah dikendalikan.'},
+  aphid:{n:'Kutu daun',lat:'Rhopalosiphum maidis',pos:'high',
+    sym:'Koloni kecil hijau keabuan di malai dan daun, ada embun madu dan jelaga.',
+    ok:['imidakloprid','tiametoksam'],bad:INSEKT_BAD,trap:{},
+    tip:'Cek musuh alami seperti kumbang koksi sebelum menyemprot.'},
+  fly:{n:'Lalat bibit',lat:'Atherigona spp.',pos:'low',
+    sym:'Titik tumbuh bibit muda mati. Daun tengah layu dan mudah dicabut.',
+    ok:['tiametoksam','imidakloprid'],bad:INSEKT_BAD,trap:{},
+    tip:'Paling efektif lewat perlakuan benih, karena serangan terjadi saat tanaman masih sangat muda.'},
+  downy:{n:'Bulai',lat:'Peronosclerospora maydis',pos:'mid',
+    sym:'Garis klorotik sejajar tulang daun, tanaman kerdil, spora putih di bawah daun pada pagi hari.',
+    ok:['metalaksil'],bad:['propikonazol','emamektin','klorantraniliprol','spinetoram','imidakloprid','tiametoksam','atrazin','glifosat','brodifakum','bromadiolon','nikosulfuron','mesotrion'],
+    trap:{propikonazol:'Bulai disebabkan cendawan semu (oomycetes). Fungisida triazol tidak efektif untuk kelompok ini.'},
+    tip:'Perlakuan benih metalaksil, tanam serempak, dan cabut tanaman bergejala lebih awal.'},
+  blight:{n:'Hawar daun',lat:'Exserohilum turcicum',pos:'high',
+    sym:'Bercak lonjong abu-cokelat besar berbentuk cerutu di daun.',
+    ok:['azoksistrobin','propikonazol','mankozeb'],bad:['metalaksil','emamektin','klorantraniliprol','spinetoram','imidakloprid','tiametoksam','atrazin','glifosat','brodifakum','bromadiolon','nikosulfuron','mesotrion'],
+    trap:{metalaksil:'Metalaksil khusus cendawan semu. Hawar daun disebabkan cendawan sejati, jadi pilih triazol, strobilurin, atau kontak.'},
+    tip:'Aplikasi preventif saat cuaca lembap dan varietas toleran lebih menolong daripada menyemprot setelah bercak meluas.'},
+  rust:{n:'Karat daun',lat:'Puccinia spp.',pos:'high',
+    sym:'Pustul kecil oranye kecokelatan seperti serbuk di kedua sisi daun.',
+    ok:['propikonazol','azoksistrobin'],bad:['metalaksil','emamektin','klorantraniliprol','spinetoram','imidakloprid','tiametoksam','atrazin','glifosat','brodifakum','bromadiolon','nikosulfuron','mesotrion'],
+    trap:{metalaksil:'Metalaksil khusus cendawan semu. Karat disebabkan cendawan sejati, jadi pilih triazol atau strobilurin.'},
+    tip:'Gabungkan fungisida dengan varietas yang lebih tahan karat.'},
+  weed:{n:'Gulma',lat:'rumput dan daun lebar',pos:'low',
+    sym:'Rumput dan gulma daun lebar bersaing di sela barisan, terutama saat jagung masih muda.',
+    ok:['nikosulfuron','atrazin','mesotrion'],bad:['glifosat','emamektin','klorantraniliprol','spinetoram','imidakloprid','tiametoksam','metalaksil','azoksistrobin','propikonazol','mankozeb','brodifakum','bromadiolon'],
+    trap:{glifosat:'Glifosat non-selektif, jagung ikut mati. Pakai herbisida yang selektif untuk jagung.'},
+    tip:'Cek sensitivitas varietas terhadap herbisida di label. Penyiangan mekanis tetap pilihan yang aman.'},
+  rat:{n:'Tikus sawah',lat:'Rattus argentiventer',pos:'low',
+    sym:'Lubang di tanah, tongkol digigit, jejak di sela barisan.',
+    ok:['brodifakum','bromadiolon','difenakum','flokumafen','difetialon','kumatetralil','warfarin','klorofasinon','difasinon','sengfosfida','bromethalin','kolekalsiferol'],bad:['emamektin','klorantraniliprol','spinetoram','imidakloprid','tiametoksam','metalaksil','azoksistrobin','propikonazol','mankozeb','atrazin','glifosat','nikosulfuron','mesotrion'],trap:{},
+    tip:'Pasang umpan di jalur tikus dan ganti kelompok bahan aktif bila umpan ditolak atau tikus kebal. Padukan dengan gropyokan, sanitasi gulma, dan predator alami seperti burung hantu. Waspadai keracunan sekunder pada predator, ternak, dan anak-anak.'},
+  stalk:{n:'Busuk batang bakteri',lat:'Dickeya spp. dan Pectobacterium spp. (Erwinia)',pos:'low',
+    sym:'Pangkal batang atau ruas bawah melunak, basah berair, dan berbau busuk menyengat. Daun cepat layu, batang patah dan tanaman roboh, terutama saat panas, lembap, atau lahan tergenang.',
+    ok:['kcl','tembaga','sanitasi'],bad:['urea','azoksistrobin','propikonazol','validamisin','metalaksil','emamektin','klorantrani
