@@ -41,7 +41,6 @@ h2{font-size:15px;margin:18px 0 8px;color:#ffe08a;letter-spacing:.3px}
 #stage{flex:1;position:relative;min-height:0}
 #c{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}
 #landBadge{position:absolute;right:8px;top:6px;font-size:11px;background:#000a;padding:3px 9px;border-radius:99px;pointer-events:none}
-#mute{position:absolute;right:8px;top:30px;width:34px;height:34px;border:0;border-radius:50%;background:#000a;color:#fff;font-size:16px;line-height:34px;padding:0;cursor:pointer}
 /* END */
 #end{justify-content:center;padding:24px;background:radial-gradient(circle at 50% 0,#1f5a2c 0,#0e2415 75%);overflow-y:auto}
 #end h1{font-size:24px}
@@ -94,7 +93,7 @@ h2{font-size:15px;margin:18px 0 8px;color:#ffe08a;letter-spacing:.3px}
     <div>LOLOS<b id="hMiss">0</b></div>
     <div id="bar"><i id="barFill"></i></div>
   </div>
-  <div id="stage"><canvas id="c"></canvas><div id="landBadge"></div><button id="mute" aria-label="Suara">🔊</button></div>
+  <div id="stage"><canvas id="c"></canvas><div id="landBadge"></div></div>
 </div>
 
 <!-- END -->
@@ -177,63 +176,6 @@ function drawLegend(){
   });
 }
 
-/* ---------- SUARA ---------- */
-let AC=null,muted=false,lastReadyN=0,lastSec=-1;
-try{muted=localStorage.getItem('roguing-muted')==='1';}catch(e){}
-function ac(){
-  if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){return null;}}
-  if(AC.state==='suspended')AC.resume();
-  return AC;
-}
-function noise(c,dur){
-  const b=c.createBuffer(1,Math.max(1,Math.floor(c.sampleRate*dur)),c.sampleRate),d=b.getChannelData(0);
-  for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
-  const s=c.createBufferSource();s.buffer=b;return s;
-}
-function tone(c,type,f1,f2,t0,dur,vol){
-  const o=c.createOscillator(),gn=c.createGain();
-  o.type=type;o.frequency.setValueAtTime(f1,t0);
-  if(f2)o.frequency.exponentialRampToValueAtTime(f2,t0+dur);
-  gn.gain.setValueAtTime(vol,t0);gn.gain.exponentialRampToValueAtTime(.001,t0+dur);
-  o.connect(gn);gn.connect(c.destination);o.start(t0);o.stop(t0+dur+.02);
-}
-const SFX={
-  cut(cmb){ // babat: swish + sobekan + pop, nada naik sesuai combo
-    const c=ac();if(!c||muted)return;const t=c.currentTime;
-    const n=noise(c,.18),f=c.createBiquadFilter(),gn=c.createGain();
-    f.type='bandpass';f.Q.value=1.2;
-    f.frequency.setValueAtTime(3500,t);f.frequency.exponentialRampToValueAtTime(700,t+.15);
-    gn.gain.setValueAtTime(.55,t);gn.gain.exponentialRampToValueAtTime(.001,t+.17);
-    n.connect(f);f.connect(gn);gn.connect(c.destination);n.start(t);
-    tone(c,'triangle',320,90,t+.02,.12,.35);
-    const k=Math.min(cmb,10);
-    tone(c,'sine',600+k*60,900+k*80,t+.06,.1,.18);
-  },
-  wrong(){
-    const c=ac();if(!c||muted)return;const t=c.currentTime;
-    tone(c,'sawtooth',170,95,t,.3,.25);
-    tone(c,'square',120,70,t,.3,.12);
-  },
-  miss(){
-    const c=ac();if(!c||muted)return;const t=c.currentTime;
-    tone(c,'triangle',420,300,t,.12,.25);
-    tone(c,'triangle',300,190,t+.11,.16,.25);
-  },
-  count(go){
-    const c=ac();if(!c||muted)return;const t=c.currentTime;
-    if(go){tone(c,'square',880,880,t,.28,.18);tone(c,'sine',1320,1320,t,.28,.1);}
-    else tone(c,'sine',520,520,t,.14,.22);
-  },
-  tick(){
-    const c=ac();if(!c||muted)return;const t=c.currentTime;
-    tone(c,'square',1000,1000,t,.06,.1);
-  },
-  end(){
-    const c=ac();if(!c||muted)return;const t=c.currentTime;
-    [660,520,390].forEach((f,i)=>tone(c,'triangle',f,f,t+i*.16,.22,.25));
-  }
-};
-
 /* ---------- STATE ---------- */
 const cv=$('c'),g=cv.getContext('2d');
 let W=0,H=0,rh=0,S=1,dpr=1;
@@ -251,7 +193,7 @@ function resize(){
 function show(id){['menu','game','end'].forEach(k=>$(k).classList.toggle('hidden',k!==id));}
 
 function startGame(){
-  show('game');resize();ac();lastReadyN=0;lastSec=-1;
+  show('game');resize();
   rows=ROWS.map(r=>({...r,plants:[],dist:0,gap:0}));
   timeLeft=DUR;readyT=2.4;score=0;combo=0;popups=[];shake=0;
   stats={offtype:0,pco:0,volunteer:0,wrong:0,missed:0};
@@ -286,7 +228,7 @@ function update(dt){
       pl.x+=v;pl.flash=Math.max(0,pl.flash-dt);
       if(pl.x>W+40*S&&pl.kind!=='normal'&&state==='play'){
         pl.gone=true;pl.anim=9;stats.missed++;score-=PENALTY_MISS;combo=0;
-        pop(W-50,ri*rh+rh*.5,'Lolos! −'+PENALTY_MISS,'#ff8a7a');shake=.15;SFX.miss();
+        pop(W-50,ri*rh+rh*.5,'Lolos! −'+PENALTY_MISS,'#ff8a7a');shake=.15;
       }
     });
     row.plants=row.plants.filter(pl=>pl.x<W+40*S&&!(pl.gone&&pl.anim>.5));
@@ -294,17 +236,8 @@ function update(dt){
   popups.forEach(q=>{q.life-=dt*1.1;q.y-=dt*40;});
   popups=popups.filter(q=>q.life>0);
   shake=Math.max(0,shake-dt);
-  if(state==='ready'){
-    readyT-=dt;const n=Math.max(1,Math.ceil(readyT));
-    if(n!==lastReadyN){lastReadyN=n;SFX.count(n===1);}
-    if(readyT<=0)state='play';
-  }
-  else if(state==='play'){
-    timeLeft-=dt;
-    const sec=Math.ceil(timeLeft);
-    if(sec!==lastSec){lastSec=sec;if(sec<=5&&sec>0)SFX.tick();}
-    if(timeLeft<=0){timeLeft=0;hud();finish();}
-  }
+  if(state==='ready'){readyT-=dt;if(readyT<=0)state='play';}
+  else if(state==='play'){timeLeft-=dt;if(timeLeft<=0){timeLeft=0;hud();finish();}}
 }
 
 function tap(x,y){
@@ -327,12 +260,11 @@ function tap(x,y){
   if(best.kind==='normal'){
     timeLeft=Math.max(0,timeLeft-PENALTY_T);combo=0;stats.wrong++;best.flash=.35;shake=.2;
     pop(best.x,yb-60*S,'Salah! −'+PENALTY_T+' dtk','#ff6b57');
-    SFX.wrong();
     if(navigator.vibrate)try{navigator.vibrate(60)}catch(e){}
   }else{
     best.gone=true;best.anim=0;stats[best.kind]++;combo++;
     const pts=(best.kind==='volunteer'?15:10)+Math.min(combo,10);
-    score+=pts;pop(best.x,yb-P[best.kind].h*S-10,'+'+pts,'#ffe08a');SFX.cut(combo);
+    score+=pts;pop(best.x,yb-P[best.kind].h*S-10,'+'+pts,'#ffe08a');
   }
   hud();
 }
@@ -395,7 +327,7 @@ function hud(){
   $('barFill').style.width=(timeLeft/DUR*100)+'%';
 }
 function finish(){
-  state='end';SFX.end();
+  state='end';
   let best=0;
   try{best=+localStorage.getItem('roguing-best-'+land)||0;if(score>best){best=score;localStorage.setItem('roguing-best-'+land,best);}}catch(e){best=Math.max(best,score);}
   const ok=stats.offtype+stats.pco+stats.volunteer, tot=ok+stats.wrong+stats.missed;
@@ -425,4 +357,14 @@ document.querySelectorAll('.land').forEach(b=>b.addEventListener('click',()=>{
   land=b.dataset.land;
   document.querySelectorAll('.land').forEach(x=>x.classList.toggle('sel',x===b));
   const s=$('startBtn');s.disabled=false;s.textContent='Mulai · '+(land==='baru'?'Lahan Baru':'Bekas Jagung');
-  
+}));
+$('startBtn').addEventListener('click',()=>{if(land)startGame();});
+$('againBtn').addEventListener('click',startGame);
+$('menuBtn').addEventListener('click',()=>{state='menu';show('menu');});
+window.addEventListener('resize',()=>{if(!$('game').classList.contains('hidden'))resize();drawLegend();});
+document.addEventListener('visibilitychange',()=>{last=performance.now();});
+drawLegend();
+})();
+</script>
+</body>
+</html>
