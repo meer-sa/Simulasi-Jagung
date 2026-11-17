@@ -1,1 +1,594 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Game ketuk untuk membedakan jagung dari gulma daun sempit, daun lebar, dan teki.">
+<title>Menyiangi Gulma</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Layout: satu kolom sempit ala layar HP. Intro berisi kunci ciri tanaman, lalu petak 5x4 yang bisa diketuk, lalu hasil panen. */
+:root {
+  --bg: #1d1812;
+  --panel: #2a2219;
+  --line: #41362a;
+  --soil: #5b4030;
+  --soil-hi: #6c4c38;
+  --ink: #f1e9d8;
+  --muted: #b8aa90;
+  --corn: #e9c23f;
+  --good: #92d05c;
+  --warn: #e9c23f;
+  --bad: #ff7a5c;
+  --display: "Bricolage Grotesque", "Trebuchet MS", system-ui, sans-serif;
+  --body: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 15px;
+  line-height: 1.5;
+  padding-block: 20px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  -webkit-tap-highlight-color: transparent;
+}
+.wrap { max-width: 480px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+h1 { font-family: var(--display); font-weight: 800; font-size: 30px; line-height: 1.1; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+h2 { font-family: var(--display); font-weight: 700; font-size: 19px; margin: 0; text-wrap: balance; }
+p { margin: 0; }
+.sub { color: var(--muted); margin-top: 6px; }
+section { display: flex; flex-direction: column; gap: 14px; }
 
+.legend { display: grid; gap: 10px; }
+.card { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px; align-items: center; }
+.card .art { width: 76px; height: 76px; border-radius: 9px; background: var(--soil); }
+.card .art svg { width: 100%; height: 100%; display: block; }
+.card h3 { margin: 0; font-family: var(--display); font-size: 16px; font-weight: 700; }
+.card .tag { font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); margin: 1px 0 4px; }
+.card.corn h3 { color: var(--corn); }
+.card p.txt { font-size: 13.5px; color: var(--ink); }
+
+.rules { margin: 0; padding-left: 18px; color: var(--muted); display: grid; gap: 4px; }
+.rules b { color: var(--ink); font-weight: 600; }
+
+.btn { font-family: var(--display); font-weight: 700; font-size: 17px; background: var(--corn); color: #261c05; border: 0; border-radius: 12px; padding: 14px 20px; width: 100%; cursor: pointer; touch-action: manipulation; }
+.btn:active { transform: translateY(1px); }
+.btn.alt { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.btn:focus-visible, .cell:focus-visible, .link:focus-visible { outline: 3px solid var(--corn); outline-offset: 2px; }
+.link { background: none; border: 0; color: var(--muted); font: inherit; text-decoration: underline; cursor: pointer; align-self: center; padding: 6px 10px; }
+.best { text-align: center; color: var(--muted); font-size: 13px; }
+
+.hud { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.stat { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; min-width: 0; }
+.stat .l { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.stat .v { font-family: var(--display); font-weight: 800; font-size: 24px; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.stat .v small { font-size: 12px; color: var(--corn); font-weight: 700; margin-left: 4px; }
+.bar { height: 8px; background: var(--line); border-radius: 99px; overflow: hidden; }
+.bar i { display: block; height: 100%; width: 100%; background: var(--good); border-radius: 99px; transition: width 0.25s linear, background 0.25s; }
+
+.field { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; padding: 8px; background: #33261c; border-radius: 16px; user-select: none; -webkit-user-select: none; }
+.cell {
+  position: relative; aspect-ratio: 1; padding: 0; border: 0; border-radius: 10px; overflow: hidden; cursor: pointer; touch-action: manipulation;
+  background-color: var(--soil);
+  background-image: radial-gradient(circle at 22% 28%, rgba(0,0,0,0.18) 0 2px, transparent 3px), radial-gradient(circle at 70% 70%, rgba(255,255,255,0.07) 0 2px, transparent 3px), radial-gradient(circle at 80% 22%, rgba(0,0,0,0.14) 0 1.5px, transparent 2.5px);
+}
+.cell:active { background-color: var(--soil-hi); }
+.cell.bad { animation: flash 0.45s ease-out; }
+.plant { position: absolute; inset: 0; transform: scale(var(--s, 0.3)); transform-origin: 50% 88%; transition: transform 0.7s ease; pointer-events: none; }
+.plant svg { width: 100%; height: 100%; display: block; }
+.plant.shake { animation: shake 0.3s linear; }
+.ghost { animation: pull 0.55s ease-in forwards; transition: none; }
+.pop { position: absolute; left: 0; right: 0; top: 28%; text-align: center; font-family: var(--display); font-weight: 800; font-size: 17px; color: var(--good); text-shadow: 0 1px 2px rgba(0,0,0,0.6); animation: rise 0.8s ease-out forwards; pointer-events: none; }
+.pop.bad { color: var(--bad); }
+@keyframes pull { to { translate: 0 -35%; rotate: 16deg; opacity: 0; } }
+@keyframes rise { from { translate: 0 6px; opacity: 1; } to { translate: 0 -28px; opacity: 0; } }
+@keyframes fadeout { to { opacity: 0; } }
+.ghost.out { animation: fadeout 0.4s ease-out forwards; }
+@keyframes shake { 25% { translate: -7% 0; } 75% { translate: 7% 0; } }
+@keyframes flash { 0% { box-shadow: inset 0 0 0 4px var(--bad); } 100% { box-shadow: inset 0 0 0 0 transparent; } }
+
+.msg { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; min-height: 4.2em; font-size: 14px; color: var(--muted); }
+.msg b { color: var(--ink); font-weight: 600; }
+.msg.good b { color: var(--good); }
+.msg.bad b { color: var(--bad); }
+
+.big { display: flex; align-items: baseline; gap: 10px; }
+.big .n { font-family: var(--display); font-weight: 800; font-size: 64px; line-height: 1; font-variant-numeric: tabular-nums; }
+.big .u { color: var(--muted); }
+.rows { display: grid; gap: 0; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.rows div { display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; background: var(--panel); border-top: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.rows div:first-child { border-top: 0; }
+.rows span:first-child { color: var(--muted); }
+.tip { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+.btns { display: grid; gap: 10px; }
+
+.head { display: flex; gap: 12px; justify-content: space-between; align-items: flex-start; }
+.mute { flex: none; background: transparent; color: var(--ink); border: 1px solid var(--line); border-radius: 99px; padding: 6px 12px; font: 600 13px var(--body); cursor: pointer; touch-action: manipulation; white-space: nowrap; }
+.mute[aria-pressed="false"] { color: var(--muted); }
+.mute:focus-visible { outline: 3px solid var(--corn); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .plant, .bar i { transition: none; }
+  .ghost, .pop, .cell.bad, .plant.shake { animation: none; }
+  .ghost { opacity: 0; }
+}
+
+/* Dasar halaman mandiri */
+[hidden] { display: none !important; }
+body { margin: 0; }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header class="head">
+    <div>
+      <h1>Menyiangi Gulma</h1>
+      <p class="sub">Cabut gulma sebelum menguasai petak. Jagung harus tetap berdiri.</p>
+    </div>
+    <button class="mute" id="mute" type="button" aria-pressed="true">Suara nyala</button>
+  </header>
+
+  <section id="intro">
+    <h2>Kenali empat tanaman ini</h2>
+    <div class="legend" id="legend"></div>
+    <ul class="rules">
+      <li><b>Ketuk gulma</b> untuk mencabutnya. Gulma kecil bernilai lebih banyak.</li>
+      <li><b>Ketuk jagung</b> berarti merusak tanaman: hasil panen dan skor turun.</li>
+      <li><b>Gulma besar</b> bersaing dengan jagung dan menurunkan hasil panen tiap detik.</li>
+      <li><b>Teki</b> harus diketuk dua kali agar umbinya ikut tercabut.</li>
+      <li><b>Jagung berpindah</b> petak setiap beberapa detik. Perhatikan baik-baik letaknya.</li>
+      <li><b>Tiap 10 detik</b> naik tingkat: gulma muncul dan tumbuh lebih cepat, jagung lebih sering berpindah.</li>
+    </ul>
+    <button class="btn" id="start" type="button">Mulai menyiang (60 detik)</button>
+    <p class="best" id="best"></p>
+  </section>
+
+  <section id="play" hidden>
+    <div class="hud">
+      <div class="stat"><div class="l">Waktu</div><div class="v" id="tTime">60</div></div>
+      <div class="stat"><div class="l">Skor</div><div class="v"><span id="tScore">0</span><small id="tCombo"></small></div></div>
+      <div class="stat"><div class="l">Hasil panen</div><div class="v" id="tYield">100%</div></div>
+    </div>
+    <div class="bar" aria-hidden="true"><i id="bar"></i></div>
+    <div class="field" id="field"></div>
+    <p class="msg" id="msg" aria-live="polite">Ketuk gulma untuk mencabutnya.</p>
+    <button class="link" id="quit" type="button">Akhiri permainan</button>
+  </section>
+
+  <section id="result" hidden>
+    <h2 id="rTitle">Panen terselamatkan</h2>
+    <div class="big"><span class="n" id="rYield">100</span><span class="u">% hasil panen tersisa</span></div>
+    <div class="rows" id="rRows"></div>
+    <p class="tip" id="rTip"></p>
+    <div class="btns">
+      <button class="btn" id="again" type="button">Main lagi</button>
+      <button class="btn alt" id="back" type="button">Lihat ciri tanaman</button>
+    </div>
+    <p class="best" id="rBest"></p>
+  </section>
+</main>
+
+<script>
+(function () {
+  var COLS = 5, N = 20, CORN_N = 7, DURATION = 60;
+  var SCALE = [0.3, 0.5, 0.7, 0.88];
+  var BASE = { 1: 12, 2: 9, 3: 5 };
+
+  /* ---------- gambar tanaman (SVG 100x100) ---------- */
+  function svg(inner) { return '<svg viewBox="0 0 100 100" aria-hidden="true">' + inner + '</svg>'; }
+
+  function artCorn() {
+    var A = 'M50 86 C60 66 78 58 95 68 C78 66 62 78 50 92 Z', Ar = 'M50 89 C62 72 78 64 94 68';
+    var B = 'M50 66 C58 48 74 38 88 42 C74 46 60 58 50 74 Z', Br = 'M50 70 C60 54 74 44 87 42';
+    var C = 'M50 48 C54 34 62 24 72 22 C64 30 56 40 50 56 Z', Cr = 'M50 52 C55 38 62 28 71 22';
+    function leaf(d, r) { return '<path d="' + d + '" fill="#3f8a35"/><path d="' + r + '" stroke="#b8dc7a" stroke-width="1.6" fill="none" stroke-linecap="round"/>'; }
+    var right = leaf(A, Ar) + leaf(B, Br) + leaf(C, Cr);
+    var left = leaf(A, Ar) + leaf(B, Br);
+    return '<rect x="47" y="40" width="6" height="52" rx="3" fill="#5f9a3a"/>' +
+      '<g transform="translate(100 8) scale(-1 1)">' + left + '</g>' +
+      '<g>' + right + '</g>' +
+      '<path d="M50 52 C46 38 47 22 50 8 C53 22 54 38 50 52 Z" fill="#3f8a35"/>' +
+      '<path d="M50 50 L50 12" stroke="#b8dc7a" stroke-width="1.6" stroke-linecap="round"/>';
+  }
+
+  function artSempit(stage) {
+    var back = ['M50 90 Q40 66 18 52', 'M50 90 Q60 66 82 52', 'M50 90 Q47 70 36 56'];
+    var front = ['M50 90 Q46 60 30 38', 'M50 90 Q48 62 44 32', 'M50 90 Q52 56 56 28', 'M50 90 Q56 64 70 40', 'M50 90 Q58 74 80 60', 'M50 90 Q42 74 22 62', 'M50 90 Q50 66 50 44'];
+    var s = '';
+    back.forEach(function (d) { s += '<path d="' + d + '" stroke="#86a834" stroke-width="2.2" fill="none" stroke-linecap="round"/>'; });
+    front.forEach(function (d) { s += '<path d="' + d + '" stroke="#b3d04c" stroke-width="2.4" fill="none" stroke-linecap="round"/>'; });
+    if (stage >= 3) {
+      s += '<g stroke="#e3d77c" stroke-width="1.6" stroke-linecap="round">' +
+        '<path d="M44 32 l-3 -9 M44 32 l0 -10 M44 32 l3 -9"/>' +
+        '<path d="M56 28 l-3 -9 M56 28 l0 -10 M56 28 l3 -9"/></g>';
+    }
+    return s;
+  }
+
+  function artLebar(stage) {
+    var s = '<path d="M50 92 L50 36" stroke="#b04a6e" stroke-width="3.2" stroke-linecap="round"/>';
+    var L = [[62, 78, -28, 12, 6.5], [38, 78, 28, 12, 6.5], [60, 62, -30, 11, 6], [40, 62, 30, 11, 6], [57, 47, -36, 9, 5], [43, 47, 36, 9, 5]];
+    L.forEach(function (l) {
+      var cx = l[0], cy = l[1], a = l[2], rx = l[3], ry = l[4];
+      s += '<g transform="rotate(' + a + ' ' + cx + ' ' + cy + ')"><ellipse cx="' + cx + '" cy="' + cy + '" rx="' + rx + '" ry="' + ry + '" fill="#62b24f"/>' +
+        '<line x1="' + (cx - rx) + '" y1="' + cy + '" x2="' + (cx + rx - 1) + '" y2="' + cy + '" stroke="#c4e594" stroke-width="1"/></g>';
+    });
+    if (stage >= 3) {
+      s += '<g fill="#e0679a"><circle cx="50" cy="32" r="3"/><circle cx="45" cy="36" r="2.6"/><circle cx="55" cy="36" r="2.6"/><circle cx="50" cy="26" r="2.4"/><circle cx="46" cy="29" r="2.2"/><circle cx="54" cy="29" r="2.2"/></g>';
+    }
+    return s;
+  }
+
+  function artTeki(stage) {
+    var blades = ['M50 90 Q46 68 36 46', 'M50 90 Q54 68 64 46', 'M50 90 Q44 72 26 58', 'M50 90 Q56 72 74 58', 'M50 90 Q50 70 46 50'];
+    var s = '';
+    if (stage >= 2) s += '<path d="M50 90 L50 40" stroke="#34a077" stroke-width="3.2" stroke-linecap="round"/>';
+    blades.forEach(function (d) {
+      s += '<path d="' + d + '" stroke="#2c8c66" stroke-width="2.4" fill="none" stroke-linecap="round"/>' +
+        '<path d="' + d + '" stroke="#86dab5" stroke-width="0.7" fill="none" opacity="0.6"/>';
+    });
+    if (stage >= 3) {
+      var ends = [[34, 30], [42, 24], [50, 22], [58, 24], [66, 30]];
+      ends.forEach(function (e) {
+        s += '<line x1="50" y1="40" x2="' + e[0] + '" y2="' + e[1] + '" stroke="#4f9e7a" stroke-width="1.2"/>' +
+          '<line x1="' + e[0] + '" y1="' + e[1] + '" x2="' + (e[0] + (e[0] - 50) * 0.25) + '" y2="' + (e[1] - 5) + '" stroke="#a8692f" stroke-width="3.4" stroke-linecap="round"/>';
+      });
+    }
+    s += '<ellipse cx="50" cy="92" rx="6" ry="4" fill="#7b5532"/>';
+    return s;
+  }
+
+  var ART = { sempit: artSempit, lebar: artLebar, teki: artTeki };
+
+  var INFO = {
+    sempit: { name: 'Gulma daun sempit', done: 'Rumput tercabut. Helainya tipis, urat daun sejajar, tumbuh merumpun.' },
+    lebar: { name: 'Gulma daun lebar', done: 'Daun lebar tercabut. Daunnya bulat telur dengan tulang daun menyirip.' },
+    teki: { name: 'Teki', done: 'Teki tercabut sampai umbi. Batangnya segitiga, daunnya lurus mengilap.' }
+  };
+
+  /* ---------- kartu ciri di layar awal ---------- */
+  var LEG = [
+    { k: 'corn', name: 'Jagung', tag: 'Tanaman utama, jangan dicabut', txt: 'Helai daun lebar dan tebal dengan ibu tulang daun menonjol. Tegak, hijau tua, paling besar.', art: svg(artCorn()) },
+    { k: 'sempit', name: 'Gulma daun sempit', tag: 'Rumput, mis. Digitaria, Echinochloa', txt: 'Helai tipis dan halus, merumpun, hijau muda. Mirip jagung muda tetapi jauh lebih kecil.', art: svg(artSempit(3)) },
+    { k: 'lebar', name: 'Gulma daun lebar', tag: 'Bayam-bayaman, Amaranthus', txt: 'Daun bulat telur dengan tulang daun menyirip, batang kemerahan dan bercabang.', art: svg(artLebar(3)) },
+    { k: 'teki', name: 'Teki', tag: 'Cyperus rotundus, cabut 2 kali', txt: 'Daun lurus mengilap hijau tua, batang segitiga, berumbi. Cabutan pertama sering tidak sampai umbi.', art: svg(artTeki(3)) }
+  ];
+  var legendEl = document.getElementById('legend');
+  legendEl.innerHTML = LEG.map(function (l) {
+    return '<div class="card ' + l.k + '"><div class="art">' + l.art + '</div><div><h3>' + l.name + '</h3><div class="tag">' + l.tag + '</div><p class="txt">' + l.txt + '</p></div></div>';
+  }).join('');
+
+  /* ---------- elemen ---------- */
+  function $(id) { return document.getElementById(id); }
+  var secIntro = $('intro'), secPlay = $('play'), secResult = $('result');
+  var fieldEl = $('field'), msgEl = $('msg');
+  var tTime = $('tTime'), tScore = $('tScore'), tYield = $('tYield'), tCombo = $('tCombo'), barEl = $('bar');
+
+  function loadBest() { try { return parseInt(localStorage.getItem('menyiangi-gulma-best') || '0', 10) || 0; } catch (e) { return 0; } }
+  function saveBest(v) { try { localStorage.setItem('menyiangi-gulma-best', String(v)); } catch (e) {} }
+  function showBest() {
+    var b = loadBest();
+    $('best').textContent = b > 0 ? 'Skor terbaik di perangkat ini: ' + b : '';
+  }
+  showBest();
+
+  /* ---------- petak ---------- */
+  var cells = [];
+  for (var i = 0; i < N; i++) {
+    (function (idx) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'cell';
+      b.setAttribute('aria-label', 'Petak ' + (idx + 1));
+      var p = document.createElement('div');
+      p.className = 'plant';
+      b.appendChild(p);
+      b.addEventListener('click', function () { tap(idx); });
+      fieldEl.appendChild(b);
+      cells.push({ el: b, plant: p, sig: null });
+    })(i);
+  }
+
+  var G = null, timer = null;
+
+  /* ---------- suara (disintesis, tanpa file audio) ---------- */
+  var AC = null, muted = false;
+  try { muted = localStorage.getItem('menyiangi-gulma-mute') === '1'; } catch (e) {}
+  function audio() {
+    if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { AC = null; } }
+    if (AC && AC.state === 'suspended') { try { AC.resume(); } catch (e) {} }
+    return AC;
+  }
+  function tone(f, d, type, v, to, delay) {
+    var a = audio(); if (!a || muted) return;
+    var t = a.currentTime + (delay || 0);
+    var o = a.createOscillator(), g = a.createGain();
+    o.type = type || 'sine';
+    o.frequency.setValueAtTime(f, t);
+    if (to) o.frequency.exponentialRampToValueAtTime(to, t + d);
+    g.gain.setValueAtTime(v || 0.2, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + d);
+    o.connect(g); g.connect(a.destination);
+    o.start(t); o.stop(t + d + 0.03);
+  }
+  function noise(d, v, fc, delay) {
+    var a = audio(); if (!a || muted) return;
+    var t = a.currentTime + (delay || 0);
+    var len = Math.max(1, Math.floor(a.sampleRate * d));
+    var buf = a.createBuffer(1, len, a.sampleRate), data = buf.getChannelData(0);
+    for (var i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+    var src = a.createBufferSource(); src.buffer = buf;
+    var f = a.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = fc || 1500;
+    var g = a.createGain();
+    g.gain.setValueAtTime(v || 0.2, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + d);
+    src.connect(f); f.connect(g); g.connect(a.destination);
+    src.start(t);
+  }
+  var SFX = {
+    start: function () { tone(440, 0.18, 'triangle', 0.15, 660); },
+    pull: function (up) {
+      noise(0.14, 0.3, 1500);
+      tone(380, 0.14, 'triangle', 0.2, 760);
+      if (up) { tone(784, 0.12, 'sine', 0.15, null, 0.12); tone(1047, 0.18, 'sine', 0.15, null, 0.22); }
+    },
+    hit: function () { tone(150, 0.16, 'sine', 0.35, 80); noise(0.08, 0.2, 600); },
+    wrong: function () { tone(170, 0.3, 'sawtooth', 0.2, 80); },
+    move: function () { tone(300, 0.2, 'sine', 0.08, 560); },
+    level: function () { tone(520, 0.1, 'square', 0.08, null); tone(780, 0.16, 'square', 0.08, null, 0.1); },
+    tick: function () { tone(900, 0.06, 'square', 0.07); },
+    win: function () { [523, 659, 784, 1047].forEach(function (f, k) { tone(f, 0.22, 'triangle', 0.18, null, k * 0.12); }); },
+    lose: function () { [392, 330, 262].forEach(function (f, k) { tone(f, 0.3, 'triangle', 0.18, null, k * 0.16); }); }
+  };
+
+  function renderCell(i) {
+    var c = cells[i], sig = '', html = '', s = SCALE[0];
+    if (G.corn.has(i)) { sig = 'corn'; html = svg(artCorn()); s = 1; }
+    else if (G.w[i]) {
+      var w = G.w[i];
+      sig = w.type + w.stage;
+      html = svg(ART[w.type](w.stage));
+      s = SCALE[w.stage];
+    }
+    if (c.sig !== sig) { c.sig = sig; c.plant.innerHTML = html; }
+    c.plant.style.setProperty('--s', s);
+  }
+
+  function say(cls, html) {
+    msgEl.className = 'msg ' + cls;
+    msgEl.innerHTML = html;
+  }
+
+  function pop(i, text, bad) {
+    var s = document.createElement('span');
+    s.className = 'pop' + (bad ? ' bad' : '');
+    s.textContent = text;
+    cells[i].el.appendChild(s);
+    setTimeout(function () { s.remove(); }, 850);
+  }
+
+  function ghost(i, cls) {
+    var c = cells[i];
+    var g = document.createElement('div');
+    g.className = 'plant ghost' + (cls ? ' ' + cls : '');
+    g.style.setProperty('--s', c.plant.style.getPropertyValue('--s'));
+    g.innerHTML = c.plant.innerHTML;
+    c.el.appendChild(g);
+    setTimeout(function () { g.remove(); }, 600);
+  }
+
+  /* ---------- permainan ---------- */
+  function newGame() {
+    var idx = [];
+    for (var k = 0; k < N; k++) idx.push(k);
+    idx.sort(function () { return Math.random() - 0.5; });
+    G = {
+      t: DURATION, elapsed: 0, since: 0, moveT: -1, lvl: 0, score: 0, yield: 100, combo: 0,
+      corn: new Set(idx.slice(0, CORN_N)),
+      w: new Array(N).fill(null),
+      pulled: { sempit: 0, lebar: 0, teki: 0 },
+      right: 0, wrong: 0, over: false, last: performance.now()
+    };
+    cells.forEach(function (c) { c.sig = null; });
+    for (var j = 0; j < N; j++) renderCell(j);
+    spawn(); spawn();
+    updateHud();
+    say('', 'Ketuk gulma untuk mencabutnya. Hindari jagung.');
+  }
+
+  function pickType() {
+    var r = Math.random();
+    if (G.elapsed < 10) return r < 0.5 ? 'sempit' : 'lebar';
+    if (r < 0.4) return 'sempit';
+    if (r < 0.8) return 'lebar';
+    return 'teki';
+  }
+
+  function spawn() {
+    var empty = [];
+    for (var i = 0; i < N; i++) if (!G.corn.has(i) && !G.w[i]) empty.push(i);
+    if (!empty.length) return;
+    var i2 = empty[Math.floor(Math.random() * empty.length)];
+    var type = pickType();
+    var stageT = (3.4 - 0.2 * Math.floor(G.elapsed / 10)) * (0.85 + Math.random() * 0.3);
+    G.w[i2] = { type: type, stage: 1, age: 0, stageT: stageT, hp: type === 'teki' ? 2 : 1 };
+    renderCell(i2);
+  }
+
+  function moveCorn() {
+    var corns = Array.from(G.corn);
+    var from = corns[Math.floor(Math.random() * corns.length)];
+    var cand = [];
+    for (var i = 0; i < N; i++) if (!G.corn.has(i)) cand.push(i);
+    if (!cand.length) return;
+    var to = cand[Math.floor(Math.random() * cand.length)];
+    SFX.move();
+    ghost(from, 'out');
+    if (G.w[to]) ghost(to, 'out');
+    var w = G.w[to];
+    G.corn.delete(from); G.corn.add(to);
+    G.w[from] = w; G.w[to] = null;
+    renderCell(from); renderCell(to);
+  }
+
+  function updateHud() {
+    tTime.textContent = Math.max(0, Math.ceil(G.t));
+    tTime.style.color = G.t <= 10 ? 'var(--bad)' : '';
+    tScore.textContent = G.score;
+    var mult = 1 + Math.min(2, Math.floor(G.combo / 6));
+    tCombo.textContent = mult > 1 ? '×' + mult : '';
+    var y = Math.round(G.yield);
+    tYield.textContent = y + '%';
+    barEl.style.width = G.yield + '%';
+    barEl.style.background = G.yield < 35 ? 'var(--bad)' : G.yield < 60 ? 'var(--warn)' : 'var(--good)';
+  }
+
+  function tick() {
+    if (!G || G.over) return;
+    var now = performance.now();
+    var dt = Math.min(250, now - G.last) / 1000;
+    G.last = now;
+    G.t -= dt; G.elapsed += dt; G.since += dt;
+    var sec = Math.ceil(G.t);
+    if (sec !== G.sec) { G.sec = sec; if (sec <= 5 && sec > 0) SFX.tick(); }
+    var lvl = Math.floor(G.elapsed / 10);
+    if (lvl > G.lvl) {
+      G.lvl = lvl;
+      SFX.level();
+      say('', '<b>Tingkat ' + (lvl + 1) + '.</b> Gulma tumbuh lebih cepat dan jagung lebih sering berpindah.');
+    }
+    var every = Math.max(0.5, 1.3 - 0.15 * lvl);
+    if (G.since >= every) { G.since = 0; spawn(); }
+    G.moveT += dt;
+    var moveEvery = Math.max(2, 4.5 - 0.5 * lvl);
+    if (G.moveT >= moveEvery) { G.moveT = 0; moveCorn(); }
+    var drain = 0;
+    for (var i = 0; i < N; i++) {
+      var w = G.w[i];
+      if (!w) continue;
+      w.age += dt;
+      var st = Math.min(3, 1 + Math.floor(w.age / w.stageT));
+      if (st !== w.stage) { w.stage = st; renderCell(i); }
+      if (st === 3) drain += 0.3; else if (st === 2) drain += 0.06;
+    }
+    G.yield = Math.max(0, G.yield - drain * dt);
+    updateHud();
+    if (G.t <= 0 || G.yield <= 0) endGame();
+  }
+
+  function tap(i) {
+    if (!G || G.over) return;
+    var c = cells[i];
+    if (G.corn.has(i)) {
+      G.wrong++; G.combo = 0;
+      G.score = Math.max(0, G.score - 20);
+      G.yield = Math.max(0, G.yield - 6);
+      c.el.classList.remove('bad'); void c.el.offsetWidth; c.el.classList.add('bad');
+      pop(i, '-20', true);
+      SFX.wrong();
+      say('bad', '<b>Itu jagung!</b> Helainya lebar dan tebal dengan ibu tulang daun menonjol. Hasil panen turun 6%.');
+      updateHud();
+      if (G.yield <= 0) endGame();
+      return;
+    }
+    var w = G.w[i];
+    if (!w) return;
+    if (w.type === 'teki' && w.hp > 1) {
+      w.hp--;
+      SFX.hit();
+      c.plant.classList.remove('shake'); void c.plant.offsetWidth; c.plant.classList.add('shake');
+      say('', '<b>Teki.</b> Umbinya masih di tanah. Ketuk sekali lagi agar tercabut sampai umbi.');
+      return;
+    }
+    var prevMult = 1 + Math.min(2, Math.floor(G.combo / 6));
+    G.combo++;
+    var mult = 1 + Math.min(2, Math.floor(G.combo / 6));
+    var pts = (BASE[w.stage] + (w.type === 'teki' ? 4 : 0)) * mult;
+    G.score += pts;
+    G.pulled[w.type]++; G.right++;
+    ghost(i);
+    G.w[i] = null;
+    renderCell(i);
+    pop(i, '+' + pts, false);
+    SFX.pull(mult > prevMult);
+    say('good', '<b>' + INFO[w.type].name + '.</b> ' + INFO[w.type].done);
+    updateHud();
+  }
+
+  function show(sec) {
+    secIntro.hidden = sec !== 'intro';
+    secPlay.hidden = sec !== 'play';
+    secResult.hidden = sec !== 'result';
+    window.scrollTo(0, 0);
+  }
+
+  function startGame() {
+    if (timer) clearInterval(timer);
+    newGame();
+    show('play');
+    SFX.start();
+    G.last = performance.now();
+    timer = setInterval(tick, 100);
+  }
+
+  function endGame() {
+    if (!G || G.over) return;
+    G.over = true;
+    clearInterval(timer); timer = null;
+    var left3 = 0;
+    for (var i = 0; i < N; i++) if (G.w[i] && G.w[i].stage === 3) left3++;
+    var y = Math.round(G.yield);
+    var title = G.yield <= 0 ? 'Gagal panen' : y >= 85 ? 'Panen terselamatkan' : y >= 60 ? 'Panen cukup' : 'Panen turun banyak';
+    $('rTitle').textContent = title;
+    if (G.yield > 0 && y >= 60) SFX.win(); else SFX.lose();
+    $('rYield').textContent = y;
+    $('rRows').innerHTML =
+      '<div><span>Skor</span><span>' + G.score + '</span></div>' +
+      '<div><span>Gulma daun sempit dicabut</span><span>' + G.pulled.sempit + '</span></div>' +
+      '<div><span>Gulma daun lebar dicabut</span><span>' + G.pulled.lebar + '</span></div>' +
+      '<div><span>Teki dicabut</span><span>' + G.pulled.teki + '</span></div>' +
+      '<div><span>Jagung salah dicabut</span><span>' + G.wrong + '</span></div>' +
+      '<div><span>Gulma besar dibiarkan</span><span>' + left3 + '</span></div>';
+    var tip;
+    if (G.wrong >= 3) tip = 'Jagung dan rumput sama-sama berdaun sempit. Bedakan dari ukuran, ketebalan helai, dan ibu tulang daun yang menonjol pada jagung.';
+    else if (left3 >= 3) tip = 'Gulma yang dibiarkan besar bersaing dengan jagung untuk cahaya, air, dan hara. Cabut selagi kecil, nilainya juga lebih tinggi.';
+    else if (G.pulled.teki === 0) tip = 'Tidak ada teki yang tercabut. Teki berumbi, jadi perlu dua ketukan agar umbinya ikut keluar.';
+    else tip = 'Pertahankan ritme. Kombo naik tiap 6 gulma berturut-turut tanpa salah ketuk.';
+    $('rTip').textContent = tip;
+    var best = loadBest();
+    if (G.score > best) { saveBest(G.score); $('rBest').textContent = 'Skor terbaik baru: ' + G.score; }
+    else $('rBest').textContent = best > 0 ? 'Skor terbaik: ' + best : '';
+    showBest();
+    show('result');
+  }
+
+  var muteBtn = $('mute');
+  function paintMute() {
+    muteBtn.textContent = muted ? 'Suara mati' : 'Suara nyala';
+    muteBtn.setAttribute('aria-pressed', String(!muted));
+  }
+  muteBtn.addEventListener('click', function () {
+    muted = !muted;
+    try { localStorage.setItem('menyiangi-gulma-mute', muted ? '1' : '0'); } catch (e) {}
+    paintMute();
+    if (!muted) SFX.start();
+  });
+  paintMute();
+
+  $('start').addEventListener('click', startGame);
+  $('again').addEventListener('click', startGame);
+  $('back').addEventListener('click', function () { show('intro'); });
+  $('quit').addEventListener('click', function () {
+    if (timer) clearInterval(timer);
+    timer = null;
+    if (G) G.over = true;
+    show('intro');
+  });
+})();
+</script>
+</body>
+</html>
