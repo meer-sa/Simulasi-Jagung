@@ -1,8 +1,6 @@
 # Game Simulasi Agronomi Jagung
 
-Empat game kecil untuk belajar budidaya dan produksi benih jagung. Gratis, langsung dimainkan di browser, tanpa instalasi.
-
-> Masih tahap pengembangan. Angka harga, biaya, dan respons tanaman hanya contoh yang disederhanakan, bukan rekomendasi. Pilihan bahan aktif juga disederhanakan dan belum divalidasi terhadap label produk atau peraturan, jadi selalu ikuti label dan anjuran setempat.
+Lima game kecil untuk belajar budidaya dan produksi benih jagung. Gratis, langsung dimainkan di browser, tanpa instalasi.
 
 Menu utama: https://meer-sa.github.io/Simulasi-Jagung/
 
@@ -36,6 +34,18 @@ Jantan (hijau terang) dan betina (hijau gelap) yang normal harus dibiarkan. Di a
 
 Main: https://meer-sa.github.io/Simulasi-Jagung/roguing-challenge/
 
+## Menyiangi Gulma
+
+Game ketuk cepat membedakan jagung dari gulma. Cabut gulma sebelum menguasai petak, tanpa salah mencabut jagung yang berpindah-pindah petak:
+
+- **Gulma daun sempit (rumput):** helai tipis, merumpun, hijau muda. Mirip jagung muda tetapi jauh lebih kecil.
+- **Gulma daun lebar:** daun bulat telur, batang kemerahan, berbunga saat sudah besar.
+- **Teki:** daun lurus mengilap hijau tua, berumbi. Harus diketuk dua kali agar umbinya ikut tercabut.
+
+Menu awal menampilkan gambar dan ciri tiap tanaman, termasuk jagung. Waktu 60 detik: gulma tumbuh dalam tiga stadia dan yang dibiarkan besar menurunkan hasil panen tiap detik, jadi gulma kecil bernilai lebih banyak. Salah cabut jagung mengurangi skor dan hasil panen, cabutan beruntun memberi bonus combo, dan tingkat kesulitan naik setiap 10 detik (gulma muncul dan tumbuh lebih cepat, jagung lebih sering berpindah). Dilengkapi efek suara.
+
+Main: https://meer-sa.github.io/Simulasi-Jagung/menyiangi-gulma/
+
 ## Struktur repo
 
 ```
@@ -45,20 +55,15 @@ Main: https://meer-sa.github.io/Simulasi-Jagung/roguing-challenge/
 ├── petak-jagung/index.html
 ├── pembasmi-hama/index.html
 ├── detasseling-rush/index.html
-└── roguing-challenge/index.html
+├── roguing-challenge/index.html
+└── menyiangi-gulma/index.html
 ```
-
-## Memperbarui
-
-1. Buka folder game yang mau diubah, misalnya `roguing-challenge`.
-2. Ketuk **Add file**, pilih **Upload files**, lalu unggah file versi baru dengan nama **`index.html`** agar file lama tertimpa.
-3. Ketuk **Commit changes**. Situs ikut diperbarui dalam 1 sampai 2 menit. Kalau tampilan lama masih muncul, muat ulang atau buka lewat tab privat.
 
 ## Catatan
 
 - Skor terbaik disimpan di browser pemain (localStorage), bukan di server.
 - Koneksi internet hanya dipakai untuk memuat font Google. Tanpa internet, game tetap jalan dengan font bawaan.
-- Roguing Challenge membuat efek suaranya langsung di browser, jadi suara baru aktif setelah pemain mengetuk tombol Mulai. Tombol 🔊 di layar game untuk mematikan suara.
+- Roguing Challenge dan Menyiangi Gulma membuat efek suaranya langsung di browser, jadi suara baru aktif setelah pemain mengetuk tombol Mulai. Roguing Challenge punya tombol 🔊 di layar game untuk mematikan suara, sedangkan Menyiangi Gulma punya tombol Suara nyala/mati di pojok kanan atas.
 
 ## Masukan
 
